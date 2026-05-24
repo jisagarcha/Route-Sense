@@ -1,0 +1,152 @@
+[
+  {
+    "name": "Thamel",
+    "description": "Tourist hub and shopping district",
+    "latitude": 27.7172,
+    "longitude": 85.3120
+  },
+  {
+    "name": "Durbar Marg",
+    "description": "Premium shopping and business area",
+    "latitude": 27.7024,
+    "longitude": 85.3168
+  },
+  {
+    "name": "Asan",
+    "description": "Traditional market square",
+    "latitude": 27.7055,
+    "longitude": 85.3076
+  },
+  {
+    "name": "Basantapur",
+    "description": "Durbar Square area",
+    "latitude": 27.7044,
+    "longitude": 85.3077
+  },
+  {
+    "name": "New Road",
+    "description": "Main shopping street",
+    "latitude": 27.7000,
+    "longitude": 85.3140
+  },
+  {
+    "name": "Putalisadak",
+    "description": "Commercial area",
+    "latitude": 27.6988,
+    "longitude": 85.3216
+  },
+  {
+    "name": "Balaju",
+    "description": "Industrial and residential area",
+    "latitude": 27.7323,
+    "longitude": 85.3009
+  },
+  {
+    "name": "Kalimati",
+    "description": "Vegetable market area",
+    "latitude": 27.6964,
+    "longitude": 85.2816
+  },
+  {
+    "name": "Tripureshwor",
+    "description": "Business district",
+    "latitude": 27.6913,
+    "longitude": 85.3106
+  },
+  {
+    "name": "Koteshwor",
+    "description": "Eastern commercial hub",
+    "latitude": 27.6775,
+    "longitude": 85.3478
+  },
+  {
+    "name": "Baneshwor",
+    "description": "Educational and commercial zone",
+    "latitude": 27.6931,
+    "longitude": 85.3362
+  },
+  {
+    "name": "Pulchowk",
+    "description": "Engineering hub",
+    "latitude": 27.6796,
+    "longitude": 85.3195
+  },
+  {
+    "name": "Patan Dhoka",
+    "description": "Gateway to Patan city",
+    "latitude": 27.6743,
+    "longitude": 85.3254
+  },
+  {
+    "name": "Jawalakhel",
+    "description": "Residential and commercial area",
+    "latitude": 27.6719,
+    "longitude": 85.3161
+  },
+  {
+    "name": "Kupondole",
+    "description": "Residential area",
+    "latitude": 27.6871,
+    "longitude": 85.3139
+  },
+  {
+    "name": "Naxal",
+    "description": "Diplomatic area",
+    "latitude": 27.7101,
+    "longitude": 85.3272
+  },
+  {
+    "name": "Maharajgunj",
+    "description": "Medical and educational zone",
+    "latitude": 27.7353,
+    "longitude": 85.3328
+  },
+  {
+    "name": "Chabahil",
+    "description": "Religious and commercial area",
+    "latitude": 27.7207,
+    "longitude": 85.3430
+  },
+  {
+    "name": "Gaushala",
+    "description": "Residential area",
+    "latitude": 27.7142,
+    "longitude": 85.3466
+  },
+  {
+    "name": "Bouddha",
+    "description": "Buddhist stupa and tourist area",
+    "latitude": 27.7215,
+    "longitude": 85.3622
+  },
+  {
+    "name": "Lazimpat",
+    "description": "Diplomatic enclave",
+    "latitude": 27.7228,
+    "longitude": 85.3249
+  },
+  {
+    "name": "Dillibazar",
+    "description": "Educational and commercial zone",
+    "latitude": 27.7012,
+    "longitude": 85.3277
+  },
+  {
+    "name": "Kalanki",
+    "description": "Western gateway",
+    "latitude": 27.6927,
+    "longitude": 85.2807
+  },
+  {
+    "name": "Satdobato",
+    "description": "Southern commercial area",
+    "latitude": 27.6597,
+    "longitude": 85.3377
+  },
+  {
+    "name": "Bhaktapur Durbar Square",
+    "description": "Historic city center",
+    "latitude": 27.6722,
+    "longitude": 85.4286
+  }
+]

@@ -1,0 +1,562 @@
+[
+  {
+    "name": "Samsung Galaxy S23 #1",
+    "description": "Latest smartphone with advanced features",
+    "imageUrl": "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400",
+    "weight": 0.5,
+    "size": "1x0.5 ft",
+    "volumeCubicFt": 0.5,
+    "category": "Electronics",
+    "isCritical": true,
+    "location": {
+      "long": 85.3206,
+      "lat": 27.7172
+    }
+  },
+  {
+    "name": "Apple MacBook Pro 14\" #2",
+    "description": "High-performance laptop for professionals",
+    "imageUrl": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400",
+    "weight": 1.8,
+    "size": "1.5x1 ft",
+    "volumeCubicFt": 1.5,
+    "category": "Electronics",
+    "isCritical": true,
+    "location": {
+      "long": 85.324,
+      "lat": 27.6949
+    }
+  },
+  {
+    "name": "Pizza (Large) #3",
+    "description": "Hot fresh pizza for delivery",
+    "imageUrl": "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400",
+    "weight": 1.2,
+    "size": "1.5x1.5 ft",
+    "volumeCubicFt": 2.25,
+    "category": "Food",
+    "isCritical": false,
+    "location": {
+      "long": 85.344,
+      "lat": 27.705
+    }
+  },
+  {
+    "name": "Medicine Package #4",
+    "description": "Essential medicines and healthcare products",
+    "imageUrl": "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400",
+    "weight": 0.3,
+    "size": "0.5x0.5 ft",
+    "volumeCubicFt": 0.25,
+    "category": "Healthcare",
+    "isCritical": true,
+    "location": {
+      "long": 85.307,
+      "lat": 27.6725
+    }
+  },
+  {
+    "name": "Books Set (5 books) #5",
+    "description": "Collection of educational books",
+    "imageUrl": "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=400",
+    "weight": 2.5,
+    "size": "1x1 ft",
+    "volumeCubicFt": 1.0,
+    "category": "Education",
+    "isCritical": false,
+    "location": {
+      "long": 85.363,
+      "lat": 27.73
+    }
+  },
+  {
+    "name": "Fashion Clothing #6",
+    "description": "Trendy apparel package",
+    "imageUrl": "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400",
+    "weight": 0.8,
+    "size": "1.5x1.5x0.5 ft",
+    "volumeCubicFt": 1.125,
+    "category": "Fashion",
+    "isCritical": false,
+    "location": {
+      "long": 85.336,
+      "lat": 27.735
+    }
+  },
+  {
+    "name": "Rice Bag (10kg) #7",
+    "description": "Premium quality rice",
+    "imageUrl": "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400",
+    "weight": 10.0,
+    "size": "2x1.5 ft",
+    "volumeCubicFt": 3.0,
+    "category": "Groceries",
+    "isCritical": false,
+    "location": {
+      "long": 85.296,
+      "lat": 27.74
+    }
+  },
+  {
+    "name": "LED TV 43\" #8",
+    "description": "Smart LED television",
+    "imageUrl": "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400",
+    "weight": 8.5,
+    "size": "3x2 ft",
+    "volumeCubicFt": 6.0,
+    "category": "Electronics",
+    "isCritical": true,
+    "location": {
+      "long": 85.284,
+      "lat": 27.717
+    }
+  },
+  {
+    "name": "Gaming Console PS5 #9",
+    "description": "Latest gaming console",
+    "imageUrl": "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=400",
+    "weight": 4.5,
+    "size": "1.5x1.5 ft",
+    "volumeCubicFt": 2.25,
+    "category": "Electronics",
+    "isCritical": true,
+    "location": {
+      "long": 85.35,
+      "lat": 27.685
+    }
+  },
+  {
+    "name": "Furniture - Office Chair #10",
+    "description": "Ergonomic office chair",
+    "imageUrl": "https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=400",
+    "weight": 12.0,
+    "size": "3x2x2 ft",
+    "volumeCubicFt": 12.0,
+    "category": "Furniture",
+    "isCritical": false,
+    "location": {
+      "long": 85.37,
+      "lat": 27.705
+    }
+  },
+  {
+    "name": "Birthday Cake #11",
+    "description": "Custom decorated birthday cake",
+    "imageUrl": "https://images.unsplash.com/photo-1558636508-e0db3814bd1d?w=400",
+    "weight": 1.5,
+    "size": "1x1 ft",
+    "volumeCubicFt": 1.0,
+    "category": "Food",
+    "isCritical": false,
+    "location": {
+      "long": 85.3206,
+      "lat": 27.7172
+    }
+  },
+  {
+    "name": "Legal Documents #12",
+    "description": "Important legal papers",
+    "imageUrl": "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=400",
+    "weight": 0.2,
+    "size": "1x0.5 ft",
+    "volumeCubicFt": 0.5,
+    "category": "Documents",
+    "isCritical": true,
+    "location": {
+      "long": 85.324,
+      "lat": 27.6949
+    }
+  },
+  {
+    "name": "Fresh Vegetables (5kg) #13",
+    "description": "Assorted fresh vegetables",
+    "imageUrl": "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400",
+    "weight": 5.0,
+    "size": "1.5x1.5 ft",
+    "volumeCubicFt": 2.25,
+    "category": "Groceries",
+    "isCritical": false,
+    "location": {
+      "long": 85.344,
+      "lat": 27.705
+    }
+  },
+  {
+    "name": "Camera DSLR #14",
+    "description": "Professional DSLR camera",
+    "imageUrl": "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=400",
+    "weight": 1.2,
+    "size": "1x1 ft",
+    "volumeCubicFt": 1.0,
+    "category": "Electronics",
+    "isCritical": true,
+    "location": {
+      "long": 85.307,
+      "lat": 27.6725
+    }
+  },
+  {
+    "name": "Shoes Nike Air #15",
+    "description": "Premium sports shoes",
+    "imageUrl": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400",
+    "weight": 0.8,
+    "size": "1x0.5 ft",
+    "volumeCubicFt": 0.5,
+    "category": "Fashion",
+    "isCritical": false,
+    "location": {
+      "long": 85.363,
+      "lat": 27.73
+    }
+  },
+  {
+    "name": "Mobile Accessories Kit #16",
+    "description": "Charger, case, screen protector",
+    "imageUrl": "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=400",
+    "weight": 0.3,
+    "size": "0.5x0.5 ft",
+    "volumeCubicFt": 0.25,
+    "category": "Electronics",
+    "isCritical": false,
+    "location": {
+      "long": 85.336,
+      "lat": 27.735
+    }
+  },
+  {
+    "name": "Cosmetics Set #17",
+    "description": "Premium beauty products",
+    "imageUrl": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400",
+    "weight": 0.6,
+    "size": "1x0.5 ft",
+    "volumeCubicFt": 0.5,
+    "category": "Beauty",
+    "isCritical": false,
+    "location": {
+      "long": 85.296,
+      "lat": 27.74
+    }
+  },
+  {
+    "name": "Pet Food (Dog) 5kg #18",
+    "description": "Nutritious dog food",
+    "imageUrl": "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=400",
+    "weight": 5.0,
+    "size": "1.5x1 ft",
+    "volumeCubicFt": 1.5,
+    "category": "Pet Supplies",
+    "isCritical": false,
+    "location": {
+      "long": 85.284,
+      "lat": 27.717
+    }
+  },
+  {
+    "name": "Baby Care Package #19",
+    "description": "Diapers, wipes, baby products",
+    "imageUrl": "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=400",
+    "weight": 3.0,
+    "size": "2x1.5 ft",
+    "volumeCubicFt": 3.0,
+    "category": "Baby Products",
+    "isCritical": false,
+    "location": {
+      "long": 85.35,
+      "lat": 27.685
+    }
+  },
+  {
+    "name": "Sports Equipment #20",
+    "description": "Badminton racket and shuttles",
+    "imageUrl": "https://images.unsplash.com/photo-1519505907962-0a6cb0167c73?w=400",
+    "weight": 1.0,
+    "size": "2x0.5 ft",
+    "volumeCubicFt": 1.0,
+    "category": "Sports",
+    "isCritical": false,
+    "location": {
+      "long": 85.37,
+      "lat": 27.705
+    }
+  },
+  {
+    "name": "Samsung Galaxy S23 #281",
+    "description": "Latest smartphone with advanced features",
+    "imageUrl": "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400",
+    "weight": 0.5,
+    "size": "1x0.5 ft",
+    "volumeCubicFt": 0.5,
+    "category": "Electronics",
+    "isCritical": true,
+    "location": {
+      "long": 85.3206,
+      "lat": 27.7172
+    }
+  },
+  {
+    "name": "Apple MacBook Pro 14\" #282",
+    "description": "High-performance laptop for professionals",
+    "imageUrl": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400",
+    "weight": 1.8,
+    "size": "1.5x1 ft",
+    "volumeCubicFt": 1.5,
+    "category": "Electronics",
+    "isCritical": true,
+    "location": {
+      "long": 85.324,
+      "lat": 27.6949
+    }
+  },
+  {
+    "name": "Pizza (Large) #283",
+    "description": "Hot fresh pizza for delivery",
+    "imageUrl": "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400",
+    "weight": 1.2,
+    "size": "1.5x1.5 ft",
+    "volumeCubicFt": 2.25,
+    "category": "Food",
+    "isCritical": false,
+    "location": {
+      "long": 85.344,
+      "lat": 27.705
+    }
+  },
+  {
+    "name": "Medicine Package #284",
+    "description": "Essential medicines and healthcare products",
+    "imageUrl": "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400",
+    "weight": 0.3,
+    "size": "0.5x0.5 ft",
+    "volumeCubicFt": 0.25,
+    "category": "Healthcare",
+    "isCritical": true,
+    "location": {
+      "long": 85.307,
+      "lat": 27.6725
+    }
+  },
+  {
+    "name": "Books Set (5 books) #285",
+    "description": "Collection of educational books",
+    "imageUrl": "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=400",
+    "weight": 2.5,
+    "size": "1x1 ft",
+    "volumeCubicFt": 1.0,
+    "category": "Education",
+    "isCritical": false,
+    "location": {
+      "long": 85.363,
+      "lat": 27.73
+    }
+  },
+  {
+    "name": "Fashion Clothing #286",
+    "description": "Trendy apparel package",
+    "imageUrl": "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400",
+    "weight": 0.8,
+    "size": "1.5x1.5x0.5 ft",
+    "volumeCubicFt": 1.125,
+    "category": "Fashion",
+    "isCritical": false,
+    "location": {
+      "long": 85.336,
+      "lat": 27.735
+    }
+  },
+  {
+    "name": "Rice Bag (10kg) #287",
+    "description": "Premium quality rice",
+    "imageUrl": "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400",
+    "weight": 10.0,
+    "size": "2x1.5 ft",
+    "volumeCubicFt": 3.0,
+    "category": "Groceries",
+    "isCritical": false,
+    "location": {
+      "long": 85.296,
+      "lat": 27.74
+    }
+  },
+  {
+    "name": "LED TV 43\" #288",
+    "description": "Smart LED television",
+    "imageUrl": "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400",
+    "weight": 8.5,
+    "size": "3x2 ft",
+    "volumeCubicFt": 6.0,
+    "category": "Electronics",
+    "isCritical": true,
+    "location": {
+      "long": 85.284,
+      "lat": 27.717
+    }
+  },
+  {
+    "name": "Gaming Console PS5 #289",
+    "description": "Latest gaming console",
+    "imageUrl": "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=400",
+    "weight": 4.5,
+    "size": "1.5x1.5 ft",
+    "volumeCubicFt": 2.25,
+    "category": "Electronics",
+    "isCritical": true,
+    "location": {
+      "long": 85.35,
+      "lat": 27.685
+    }
+  },
+  {
+    "name": "Furniture - Office Chair #290",
+    "description": "Ergonomic office chair",
+    "imageUrl": "https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=400",
+    "weight": 12.0,
+    "size": "3x2x2 ft",
+    "volumeCubicFt": 12.0,
+    "category": "Furniture",
+    "isCritical": false,
+    "location": {
+      "long": 85.37,
+      "lat": 27.705
+    }
+  },
+  {
+    "name": "Birthday Cake #291",
+    "description": "Custom decorated birthday cake",
+    "imageUrl": "https://images.unsplash.com/photo-1558636508-e0db3814bd1d?w=400",
+    "weight": 1.5,
+    "size": "1x1 ft",
+    "volumeCubicFt": 1.0,
+    "category": "Food",
+    "isCritical": false,
+    "location": {
+      "long": 85.3206,
+      "lat": 27.7172
+    }
+  },
+  {
+    "name": "Legal Documents #292",
+    "description": "Important legal papers",
+    "imageUrl": "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=400",
+    "weight": 0.2,
+    "size": "1x0.5 ft",
+    "volumeCubicFt": 0.5,
+    "category": "Documents",
+    "isCritical": true,
+    "location": {
+      "long": 85.324,
+      "lat": 27.6949
+    }
+  },
+  {
+    "name": "Fresh Vegetables (5kg) #293",
+    "description": "Assorted fresh vegetables",
+    "imageUrl": "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400",
+    "weight": 5.0,
+    "size": "1.5x1.5 ft",
+    "volumeCubicFt": 2.25,
+    "category": "Groceries",
+    "isCritical": false,
+    "location": {
+      "long": 85.344,
+      "lat": 27.705
+    }
+  },
+  {
+    "name": "Camera DSLR #294",
+    "description": "Professional DSLR camera",
+    "imageUrl": "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=400",
+    "weight": 1.2,
+    "size": "1x1 ft",
+    "volumeCubicFt": 1.0,
+    "category": "Electronics",
+    "isCritical": true,
+    "location": {
+      "long": 85.307,
+      "lat": 27.6725
+    }
+  },
+  {
+    "name": "Shoes Nike Air #295",
+    "description": "Premium sports shoes",
+    "imageUrl": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400",
+    "weight": 0.8,
+    "size": "1x0.5 ft",
+    "volumeCubicFt": 0.5,
+    "category": "Fashion",
+    "isCritical": false,
+    "location": {
+      "long": 85.363,
+      "lat": 27.73
+    }
+  },
+  {
+    "name": "Mobile Accessories Kit #296",
+    "description": "Charger, case, screen protector",
+    "imageUrl": "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=400",
+    "weight": 0.3,
+    "size": "0.5x0.5 ft",
+    "volumeCubicFt": 0.25,
+    "category": "Electronics",
+    "isCritical": false,
+    "location": {
+      "long": 85.336,
+      "lat": 27.735
+    }
+  },
+  {
+    "name": "Cosmetics Set #297",
+    "description": "Premium beauty products",
+    "imageUrl": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400",
+    "weight": 0.6,
+    "size": "1x0.5 ft",
+    "volumeCubicFt": 0.5,
+    "category": "Beauty",
+    "isCritical": false,
+    "location": {
+      "long": 85.296,
+      "lat": 27.74
+    }
+  },
+  {
+    "name": "Pet Food (Dog) 5kg #298",
+    "description": "Nutritious dog food",
+    "imageUrl": "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=400",
+    "weight": 5.0,
+    "size": "1.5x1 ft",
+    "volumeCubicFt": 1.5,
+    "category": "Pet Supplies",
+    "isCritical": false,
+    "location": {
+      "long": 85.284,
+      "lat": 27.717
+    }
+  },
+  {
+    "name": "Baby Care Package #299",
+    "description": "Diapers, wipes, baby products",
+    "imageUrl": "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=400",
+    "weight": 3.0,
+    "size": "2x1.5 ft",
+    "volumeCubicFt": 3.0,
+    "category": "Baby Products",
+    "isCritical": false,
+    "location": {
+      "long": 85.35,
+      "lat": 27.685
+    }
+  },
+  {
+    "name": "Sports Equipment #300",
+    "description": "Badminton racket and shuttles",
+    "imageUrl": "https://images.unsplash.com/photo-1519505907962-0a6cb0167c73?w=400",
+    "weight": 1.0,
+    "size": "2x0.5 ft",
+    "volumeCubicFt": 1.0,
+    "category": "Sports",
+    "isCritical": false,
+    "location": {
+      "long": 85.37,
+      "lat": 27.705
+    }
+  }
+]

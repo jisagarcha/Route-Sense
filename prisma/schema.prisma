@@ -1,0 +1,487 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================================================
+// Authentication & User Management Models
+// =====================================================
+
+enum UserRole {
+  ADMIN
+  DISPATCHER
+  DRIVER
+  ANALYST
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          UserRole  @default(DISPATCHER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  accounts            Account[]
+  sessions            Session[]
+  routePlans          RoutePlan[]
+  routeRuns           RouteRun[]
+  routeRequests       RouteRequest[]
+  dispatcherPackages  Package[]         @relation("DispatcherPackages")
+  driverPackages      Package[]         @relation("DriverPackages")
+  driverProfile       DriverProfile?
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// =====================================================
+// Core Delivery System Models
+// =====================================================
+
+// Location represents a node in the delivery graph
+model Location {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  latitude    Float?
+  longitude   Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  roadsFrom         Road[]         @relation("RoadFrom")
+  roadsTo           Road[]         @relation("RoadTo")
+  routeRequestsFrom RouteRequest[] @relation("RouteSource")
+  routeRequestsTo   RouteRequest[] @relation("RouteTarget")
+  runSteps          RunStep[]
+  checkpoints       Checkpoint[]
+
+  @@map("locations")
+}
+
+// Road represents an edge in the delivery graph
+model Road {
+  id              Int      @id @default(autoincrement())
+  fromLocationId  Int
+  toLocationId    Int
+  distance        Float
+  isBidirectional Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  fromLocation Location @relation("RoadFrom", fields: [fromLocationId], references: [id], onDelete: Cascade)
+  toLocation   Location @relation("RoadTo", fields: [toLocationId], references: [id], onDelete: Cascade)
+
+  @@map("roads")
+  @@index([fromLocationId])
+  @@index([toLocationId])
+}
+
+// RouteRequest stores historical route computations
+model RouteRequest {
+  id               Int      @id @default(autoincrement())
+  sourceLocationId Int
+  targetLocationId Int
+  totalDistance    Float
+  pathLocations    String[] // Array of location names in the path
+  createdAt        DateTime @default(now())
+  userId           String?
+
+  // Relations
+  sourceLocation Location @relation("RouteSource", fields: [sourceLocationId], references: [id], onDelete: Cascade)
+  targetLocation Location @relation("RouteTarget", fields: [targetLocationId], references: [id], onDelete: Cascade)
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("route_requests")
+  @@index([sourceLocationId])
+  @@index([targetLocationId])
+  @@index([createdAt])
+  @@index([userId])
+}
+
+// =====================================================
+// Fleet Management Models
+// =====================================================
+
+enum VehicleType {
+  BIKE
+  CAR
+  VAN
+  TRUCK
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  IN_USE
+  MAINTENANCE
+  OFFLINE
+}
+
+model Vehicle {
+  id            String        @id @default(cuid())
+  registrationNo String       @unique
+  type          VehicleType
+  status        VehicleStatus @default(AVAILABLE)
+  capacity      Float         // in kg or cubic meters
+  fuelType      String        // petrol, diesel, electric, etc.
+  avgSpeed      Float         @default(30) // km/h
+  costPerKm     Float         @default(5) // in currency units
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  routeRuns     RouteRun[]
+  telemetry     Telemetry[]
+
+  @@map("vehicles")
+}
+
+// =====================================================
+// Route Planning & Execution Models
+// =====================================================
+
+enum RoutePlanStatus {
+  DRAFT
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model RoutePlan {
+  id                String          @id @default(cuid())
+  name              String
+  description       String?
+  scheduledDate     DateTime?
+  status            RoutePlanStatus @default(DRAFT)
+  totalDistance     Float           @default(0)
+  estimatedDuration Int             @default(0) // in minutes
+  createdById       String
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Relations
+  createdBy User       @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  routeRuns RouteRun[]
+
+  @@map("route_plans")
+  @@index([createdById])
+  @@index([scheduledDate])
+  @@index([status])
+}
+
+enum RouteRunStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model RouteRun {
+  id                Int             @id @default(autoincrement())
+  routePlanId       String
+  vehicleId         String
+  driverId          String
+  startTime         DateTime?
+  endTime           DateTime?
+  actualDistance    Float?
+  status            RouteRunStatus  @default(PENDING)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Relations
+  routePlan RoutePlan  @relation(fields: [routePlanId], references: [id], onDelete: Cascade)
+  vehicle   Vehicle    @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  driver    User       @relation(fields: [driverId], references: [id], onDelete: Restrict)
+  steps     RunStep[]
+  telemetry Telemetry[]
+
+  @@map("route_runs")
+  @@index([routePlanId])
+  @@index([vehicleId])
+  @@index([driverId])
+  @@index([status])
+  @@index([startTime])
+}
+
+enum StepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+model RunStep {
+  id           String     @id @default(cuid())
+  routeRunId   Int
+  locationId   Int
+  sequence     Int        // Order in the route
+  arrivalTime  DateTime?
+  departureTime DateTime?
+  status       StepStatus @default(PENDING)
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  // Relations
+  routeRun RouteRun @relation(fields: [routeRunId], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  @@map("run_steps")
+  @@unique([routeRunId, sequence])
+  @@index([routeRunId])
+  @@index([locationId])
+  @@index([status])
+}
+
+// =====================================================
+// Analytics & Pattern Mining Models
+// =====================================================
+
+model Pattern {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  locations   String[] // Array of location IDs or names
+  frequency   Int      @default(0)
+  support     Float    @default(0) // Apriori support value
+  confidence  Float    @default(0) // Apriori confidence value
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("patterns")
+  @@index([frequency])
+  @@index([support])
+}
+
+// =====================================================
+// Real-time Tracking Models
+// =====================================================
+
+model Telemetry {
+  id            String   @id @default(cuid())
+  routeRunId    Int
+  vehicleId     String
+  latitude      Float
+  longitude     Float
+  speed         Float?   // km/h
+  heading       Float?   // degrees
+  timestamp     DateTime @default(now())
+
+  // Relations
+  routeRun RouteRun @relation(fields: [routeRunId], references: [id], onDelete: Cascade)
+  vehicle  Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@map("telemetry")
+  @@index([routeRunId])
+  @@index([vehicleId])
+  @@index([timestamp])
+}
+
+// =====================================================
+// Package & Delivery Management Models (MVP)
+// =====================================================
+
+enum PackageStatus {
+  PENDING
+  ASSIGNED
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}
+
+enum DeliveryStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+// Product Catalog
+model Product {
+  id            String        @id @default(cuid())
+  name          String
+  description   String?
+  imageUrl      String?
+  weight        Float         // per unit in kg
+  size          String        // e.g., "2x2 ft"
+  volumeCubicFt Float         @default(0) // volume in cubic feet
+  category      String        // Electronics, Food, Documents, etc.
+  isCritical    Boolean       @default(false)
+  deliveryLat   Float?        // Default delivery latitude for this product
+  deliveryLong  Float?        // Default delivery longitude for this product
+  createdAt     DateTime      @default(now())
+  
+  packageItems PackageItem[]
+
+  @@map("products")
+  @@index([category])
+}
+
+// Package Management
+model Package {
+  id                String          @id @default(cuid())
+  packageName       String
+  dispatcherId      String
+  driverId          String?
+  status            PackageStatus   @default(PENDING)
+  totalWeight       Float           // in kg
+  totalVolume       Float           // in cubic feet
+  isCritical        Boolean         @default(false)
+  warehouseLat      Float?          // Starting warehouse location
+  warehouseLong     Float?          // Starting warehouse location
+  deliveryLat       Float?          // Primary delivery location (first stop)
+  deliveryLong      Float?          // Primary delivery location (first stop)
+  deliveryAddress   String?         // Primary delivery address
+  notes             String?
+  totalDistance     Float?          // Total optimized route distance in km
+  estimatedDuration Int?            // Estimated time in minutes
+  routeAlgorithm    String?         // "dijkstra", "bellman-ford", "bfs", "astar"
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  dispatcher      User            @relation("DispatcherPackages", fields: [dispatcherId], references: [id], onDelete: Restrict)
+  driver          User?           @relation("DriverPackages", fields: [driverId], references: [id], onDelete: SetNull)
+  items           PackageItem[]
+  delivery        Delivery?
+
+  @@map("packages")
+  @@index([dispatcherId])
+  @@index([driverId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Package Items (from product catalog)
+model PackageItem {
+  id              String   @id @default(cuid())
+  packageId       String
+  productId       String
+  quantity        Int      @default(1)
+  deliveryLat     Float?   // Delivery location for this item (optional until route optimization)
+  deliveryLong    Float?   // Delivery location for this item (optional until route optimization)
+  deliveryAddress String?  // Address for this delivery stop
+  sequence        Int?     // Order in optimized route (1 = first stop, 2 = second, etc.)
+  
+  package     Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@map("package_items")
+  @@index([packageId])
+  @@index([productId])
+}
+
+// Delivery Tracking
+model Delivery {
+  id                String          @id @default(cuid())
+  packageId         String          @unique
+  routeData         Json?           // Stores full route with algorithm used
+  algorithmUsed     String?         // "dijkstra", "bellman-ford", "bfs", "astar"
+  estimatedTime     Int?            // in minutes
+  actualTime        Int?            // in minutes
+  startedAt         DateTime?
+  completedAt       DateTime?
+  status            DeliveryStatus  @default(PENDING)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  package           Package         @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  checkpoints       Checkpoint[]
+
+  @@map("deliveries")
+  @@index([status])
+  @@index([startedAt])
+}
+
+// Delivery Checkpoints
+model Checkpoint {
+  id          String    @id @default(cuid())
+  deliveryId  String
+  locationId  Int
+  sequence    Int
+  reachedAt   DateTime?
+  status      String    @default("pending") // pending, reached, skipped
+  notes       String?
+  createdAt   DateTime  @default(now())
+  
+  delivery    Delivery  @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  location    Location  @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  @@map("checkpoints")
+  @@index([deliveryId])
+  @@index([locationId])
+  @@unique([deliveryId, sequence])
+}
+
+// Driver Profile (for recommendation)
+model DriverProfile {
+  id              String      @id @default(cuid())
+  userId          String      @unique
+  vehicleType     String      // "2-wheeler", "4-wheeler", "van", "truck"
+  maxCapacity     Float       // in kg
+  maxVolume       Float       // in cubic feet
+  experienceYears Int         @default(0)
+  rating          Float       @default(5.0)
+  totalDeliveries Int         @default(0)
+  isAvailable     Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("driver_profiles")
+  @@index([vehicleType])
+  @@index([isAvailable])
+}
