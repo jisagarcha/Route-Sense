@@ -49,7 +49,7 @@ export default function SignUpPage() {
       }
 
       router.push("/auth/signin?registered=true");
-    } catch (error) {
+    } catch {
       setError("An error occurred. Please try again.");
     } finally {
       setLoading(false);
@@ -143,10 +143,8 @@ export default function SignUpPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
-                  <SelectItem value="ADMIN">Admin</SelectItem>
                   <SelectItem value="DISPATCHER">Dispatcher</SelectItem>
                   <SelectItem value="DRIVER">Driver</SelectItem>
-                  <SelectItem value="ANALYST">Analyst</SelectItem>
                 </SelectContent>
               </Select>
             </div>

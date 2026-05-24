@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ProductCard } from './product-card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -27,21 +27,33 @@ interface ProductGridProps {
 
 export function ProductGrid({ products = [], categories = [], onProductSelect, selectedProducts = [] }: ProductGridProps) {
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [criticalFilter, setCriticalFilter] = useState<string>('all');
 
-  console.log('ProductGrid received:', { products, categories, productsLength: products.length });
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 250);
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) ||
-      product.description?.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-    const matchesCritical = criticalFilter === 'all' ||
-      (criticalFilter === 'critical' && product.isCritical) ||
-      (criticalFilter === 'non-critical' && !product.isCritical);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
-    return matchesSearch && matchesCategory && matchesCritical;
-  });
+  const filteredProducts = useMemo(() => {
+    const query = debouncedSearch.trim().toLowerCase();
+    return products.filter((product) => {
+      const matchesSearch =
+        !query ||
+        product.name.toLowerCase().includes(query) ||
+        (product.description || '').toLowerCase().includes(query);
+      const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+      const matchesCritical = criticalFilter === 'all' ||
+        (criticalFilter === 'critical' && product.isCritical) ||
+        (criticalFilter === 'non-critical' && !product.isCritical);
+
+      return matchesSearch && matchesCategory && matchesCritical;
+    });
+  }, [products, debouncedSearch, selectedCategory, criticalFilter]);
 
   return (
     <div className="space-y-4">

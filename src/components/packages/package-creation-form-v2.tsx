@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ProductGrid } from '@/components/products/product-grid';
 import { Plus, Minus, Package as PackageIcon, Loader2, MapPin, Route as RouteIcon } from 'lucide-react';
 
@@ -37,10 +38,12 @@ export function PackageCreationFormV2() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
+  const [productsLoading, setProductsLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedItems, setSelectedItems] = useState<PackageItem[]>([]);
   const [step, setStep] = useState(1); // 1: Select Products, 2: Package Details, 3: Delivery Route
+  const [error, setError] = useState('');
 
   // Form fields
   const [packageName, setPackageName] = useState('');
@@ -61,38 +64,48 @@ export function PackageCreationFormV2() {
   }, []);
 
   const fetchProducts = async () => {
+    setProductsLoading(true);
+    setError('');
     try {
       const res = await fetch('/api/products');
       const data = await res.json();
-      console.log('Products API response:', data);
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to fetch products');
+      }
+
       setProducts(data.products || []);
       setCategories(data.categories || []);
     } catch (error) {
       console.error('Error fetching products:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch products');
       setProducts([]);
       setCategories([]);
+    } finally {
+      setProductsLoading(false);
     }
   };
 
   const handleProductSelect = (product: Product) => {
-    const existingItem = selectedItems.find(item => item.productId === product.id);
-    if (existingItem) {
-      setSelectedItems(selectedItems.filter(item => item.productId !== product.id));
-    } else {
-      // Add with default delivery location from product
-      setSelectedItems([...selectedItems, {
+    setSelectedItems((currentItems) => {
+      const existingItem = currentItems.find(item => item.productId === product.id);
+      if (existingItem) {
+        return currentItems.filter(item => item.productId !== product.id);
+      }
+
+      return [...currentItems, {
         productId: product.id,
         product,
         quantity: 1,
-        deliveryLat: product.deliveryLat || 27.7172,
-        deliveryLong: product.deliveryLong || 85.3120,
+        deliveryLat: product.deliveryLat ?? 27.7172,
+        deliveryLong: product.deliveryLong ?? 85.3120,
         deliveryAddress: `Location for ${product.name}`
-      }]);
-    }
+      }];
+    });
   };
 
   const updateQuantity = (productId: string, delta: number) => {
-    setSelectedItems(selectedItems.map(item => {
+    setSelectedItems((currentItems) => currentItems.map(item => {
       if (item.productId === productId) {
         const newQuantity = Math.max(1, item.quantity + delta);
         return { ...item, quantity: newQuantity };
@@ -102,16 +115,16 @@ export function PackageCreationFormV2() {
   };
 
   const removeItem = (productId: string) => {
-    setSelectedItems(selectedItems.filter(item => item.productId !== productId));
+    setSelectedItems((currentItems) => currentItems.filter(item => item.productId !== productId));
   };
 
   const updateItemLocation = (productId: string, field: 'deliveryLat' | 'deliveryLong' | 'deliveryAddress', value: string) => {
-    setSelectedItems(selectedItems.map(item => {
+    setSelectedItems((currentItems) => currentItems.map(item => {
       if (item.productId === productId) {
         if (field === 'deliveryAddress') {
           return { ...item, [field]: value };
         } else {
-          return { ...item, [field]: parseFloat(value) || 0 };
+          return { ...item, [field]: value === '' ? Number.NaN : Number(value) };
         }
       }
       return item;
@@ -133,14 +146,38 @@ export function PackageCreationFormV2() {
   };
 
   const handleOptimizeRoute = async () => {
+    setError('');
+
+    if (!packageName.trim()) {
+      setError('Package name is required');
+      return;
+    }
+
+    const startLat = Number(warehouseLat);
+    const startLong = Number(warehouseLong);
+    const hasInvalidCoordinate =
+      !Number.isFinite(startLat) ||
+      !Number.isFinite(startLong) ||
+      selectedItems.some((item) =>
+        !Number.isFinite(item.deliveryLat) ||
+        !Number.isFinite(item.deliveryLong) ||
+        !item.deliveryAddress.trim()
+      );
+
+    if (hasInvalidCoordinate) {
+      setError('Enter valid warehouse coordinates and delivery details for every stop');
+      return;
+    }
+
     setOptimizing(true);
     try {
       const res = await fetch('/api/optimize-multi-stop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          warehouseLat: parseFloat(warehouseLat),
-          warehouseLong: parseFloat(warehouseLong),
+          warehouseLat: startLat,
+          warehouseLong: startLong,
+          algorithm: 'nearest-neighbor',
           stops: selectedItems.map(item => ({
             productId: item.productId,
             lat: item.deliveryLat,
@@ -163,11 +200,11 @@ export function PackageCreationFormV2() {
         });
         setStep(3);
       } else {
-        alert(data.error || 'Failed to optimize route');
+        setError(data.error || 'Failed to optimize route');
       }
     } catch (error) {
       console.error('Error optimizing route:', error);
-      alert('Failed to optimize route');
+      setError(error instanceof Error ? error.message : 'Failed to optimize route');
     } finally {
       setOptimizing(false);
     }
@@ -175,13 +212,13 @@ export function PackageCreationFormV2() {
 
   const handleCreatePackage = async () => {
     if (!packageName || selectedItems.length === 0 || !optimizedRoute) {
-      alert('Please complete all steps');
+      setError('Please complete all steps');
       return;
     }
 
     setLoading(true);
+    setError('');
     try {
-      const totals = calculateTotals();
       const res = await fetch('/api/packages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -209,11 +246,11 @@ export function PackageCreationFormV2() {
       if (res.ok) {
         router.push(`/packages/${data.package.id}/assign`);
       } else {
-        alert(data.error || 'Failed to create package');
+        setError(data.error || 'Failed to create package');
       }
     } catch (error) {
       console.error('Error creating package:', error);
-      alert('Failed to create package');
+      setError(error instanceof Error ? error.message : 'Failed to create package');
     } finally {
       setLoading(false);
     }
@@ -223,6 +260,12 @@ export function PackageCreationFormV2() {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Progress Steps */}
       <div className="flex items-center justify-center gap-4">
         <div className={`flex items-center gap-2 ${step === 1 ? 'text-primary' : step > 1 ? 'text-green-600' : 'text-gray-400'}`}>
@@ -324,12 +367,19 @@ export function PackageCreationFormV2() {
           )}
 
           {/* Product Selection */}
-          <ProductGrid
-            products={products}
-            categories={categories}
-            onProductSelect={handleProductSelect}
-            selectedProducts={selectedItems.map(item => item.productId)}
-          />
+          {productsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              <span className="text-sm text-gray-600">Loading products...</span>
+            </div>
+          ) : (
+            <ProductGrid
+              products={products}
+              categories={categories}
+              onProductSelect={handleProductSelect}
+              selectedProducts={selectedItems.map(item => item.productId)}
+            />
+          )}
         </>
       )}
 

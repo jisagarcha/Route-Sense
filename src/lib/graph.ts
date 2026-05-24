@@ -24,6 +24,68 @@ export interface ShortestPathResult {
   found: boolean;
 }
 
+class PriorityQueue<T> {
+  private items: Array<{ element: T; priority: number }> = [];
+
+  enqueue(element: T, priority: number): void {
+    this.items.push({ element, priority });
+    this.bubbleUp(this.items.length - 1);
+  }
+
+  dequeue(): T | undefined {
+    if (this.items.length === 0) return undefined;
+    const min = this.items[0];
+    const end = this.items.pop();
+
+    if (this.items.length > 0 && end) {
+      this.items[0] = end;
+      this.sinkDown(0);
+    }
+
+    return min.element;
+  }
+
+  isEmpty(): boolean {
+    return this.items.length === 0;
+  }
+
+  private bubbleUp(index: number): void {
+    while (index > 0) {
+      const parentIndex = Math.floor((index - 1) / 2);
+      if (this.items[parentIndex].priority <= this.items[index].priority) break;
+      [this.items[parentIndex], this.items[index]] = [this.items[index], this.items[parentIndex]];
+      index = parentIndex;
+    }
+  }
+
+  private sinkDown(index: number): void {
+    while (true) {
+      const leftChildIndex = 2 * index + 1;
+      const rightChildIndex = 2 * index + 2;
+      let smallestIndex = index;
+
+      if (
+        leftChildIndex < this.items.length &&
+        this.items[leftChildIndex].priority < this.items[smallestIndex].priority
+      ) {
+        smallestIndex = leftChildIndex;
+      }
+
+      if (
+        rightChildIndex < this.items.length &&
+        this.items[rightChildIndex].priority < this.items[smallestIndex].priority
+      ) {
+        smallestIndex = rightChildIndex;
+      }
+
+      if (smallestIndex === index) break;
+
+      [this.items[index], this.items[smallestIndex]] = [this.items[smallestIndex], this.items[index]];
+      index = smallestIndex;
+    }
+  }
+}
+
 /**
  * Build adjacency list from edges
  * @param edges Array of graph edges
@@ -54,7 +116,7 @@ export function buildAdjacencyList(
 
 /**
  * Dijkstra's Algorithm for finding shortest path
- * Time Complexity: O(V² + E) with simple array implementation
+ * Time Complexity: O((V + E) log V) with a binary-heap priority queue
  * @param adjacencyList Graph represented as adjacency list
  * @param source Source node ID
  * @param target Target node ID
@@ -70,6 +132,7 @@ export function dijkstra(
   const distances: { [nodeId: number]: number } = {};
   const previous: { [nodeId: number]: number | null } = {};
   const visited: Set<number> = new Set();
+  const queue = new PriorityQueue<number>();
 
   // Initialize all distances to infinity except source
   nodeIds.forEach((nodeId) => {
@@ -77,29 +140,14 @@ export function dijkstra(
     previous[nodeId] = null;
   });
   distances[source] = 0;
+  queue.enqueue(source, 0);
 
-  // Main loop - visit all nodes
-  for (let i = 0; i < nodeIds.length; i++) {
-    // Find unvisited node with minimum distance (O(V))
-    let minDistance = Infinity;
-    let currentNode: number | null = null;
+  while (!queue.isEmpty()) {
+    const currentNode = queue.dequeue();
+    if (currentNode === undefined || visited.has(currentNode)) continue;
 
-    nodeIds.forEach((nodeId) => {
-      if (!visited.has(nodeId) && distances[nodeId] < minDistance) {
-        minDistance = distances[nodeId];
-        currentNode = nodeId;
-      }
-    });
-
-    // No reachable unvisited nodes left
-    if (currentNode === null || minDistance === Infinity) {
-      break;
-    }
-
-    // Mark current node as visited
     visited.add(currentNode);
 
-    // Early termination if we reached target
     if (currentNode === target) {
       break;
     }
@@ -112,6 +160,7 @@ export function dijkstra(
         if (newDistance < distances[neighbor]) {
           distances[neighbor] = newDistance;
           previous[neighbor] = currentNode;
+          queue.enqueue(neighbor, newDistance);
         }
       }
     });

@@ -32,6 +32,10 @@ export async function PATCH(
       return NextResponse.json({ error: 'Only dispatchers can update packages' }, { status: 403 });
     }
 
+    if (session.user.role === 'DISPATCHER' && pkg.dispatcherId !== session.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     // Handle driver assignment
     if (body.driverId) {
       // Only allow assigning PENDING packages
@@ -53,29 +57,36 @@ export async function PATCH(
         return NextResponse.json({ error: 'Driver profile not found' }, { status: 404 });
       }
 
-      // Update package status and assign driver
-      const updatedPackage = await prisma.package.update({
-        where: { id: packageId },
-        data: {
-          driverId: body.driverId,
-          status: 'ASSIGNED'
-        },
-        include: {
-          dispatcher: true,
-          driver: true,
-          items: {
-            include: { product: true }
+      const [updatedPackage] = await prisma.$transaction([
+        prisma.package.update({
+          where: { id: packageId },
+          data: {
+            driverId: body.driverId,
+            status: 'ASSIGNED'
+          },
+          include: {
+            dispatcher: true,
+            driver: true,
+            delivery: true,
+            items: {
+              include: { product: true },
+              orderBy: { sequence: 'asc' },
+            }
           }
-        }
-      });
-
-      // Create a delivery record
-      await prisma.delivery.create({
-        data: {
-          packageId,
-          status: 'PENDING'
-        }
-      });
+        }),
+        prisma.delivery.upsert({
+          where: { packageId },
+          update: { status: 'PENDING', startedAt: null, completedAt: null, actualTime: null },
+          create: {
+            packageId,
+            status: 'PENDING'
+          }
+        }),
+        prisma.driverProfile.updateMany({
+          where: { userId: body.driverId },
+          data: { isAvailable: false },
+        }),
+      ]);
 
       return NextResponse.json({
         message: 'Driver assigned successfully',
@@ -85,6 +96,10 @@ export async function PATCH(
 
     // Handle route optimization update
     if (body.warehouseLat !== undefined || body.items) {
+      if (pkg.status !== 'PENDING') {
+        return NextResponse.json({ error: 'Only pending packages can be optimized' }, { status: 400 });
+      }
+
       const updateData: Record<string, unknown> = {};
 
       if (body.warehouseLat !== undefined) updateData.warehouseLat = body.warehouseLat;
@@ -96,20 +111,14 @@ export async function PATCH(
       if (body.estimatedDuration !== undefined) updateData.estimatedDuration = body.estimatedDuration;
       if (body.routeAlgorithm !== undefined) updateData.routeAlgorithm = body.routeAlgorithm;
 
-      // Update package
-      const updatedPackage = await prisma.package.update({
-        where: { id: packageId },
-        data: updateData,
-        include: {
-          items: {
-            include: { product: true }
-          }
-        }
-      });
-
-      // Update items with delivery locations and sequence
+      const itemIds = new Set(pkg.items.map((item) => item.id));
+      const itemUpdates = [];
       if (body.items && Array.isArray(body.items)) {
         for (const item of body.items) {
+          if (!itemIds.has(item.id)) {
+            return NextResponse.json({ error: 'Invalid package item update' }, { status: 400 });
+          }
+
           const updateItemData: Record<string, unknown> = {};
           
           if (item.deliveryLat !== undefined) updateItemData.deliveryLat = item.deliveryLat;
@@ -117,12 +126,33 @@ export async function PATCH(
           if (item.deliveryAddress !== undefined) updateItemData.deliveryAddress = item.deliveryAddress;
           if (item.sequence !== undefined) updateItemData.sequence = item.sequence;
           
-          await prisma.packageItem.update({
+          itemUpdates.push(prisma.packageItem.update({
             where: { id: item.id },
             data: updateItemData
-          });
+          }));
         }
       }
+
+      await prisma.$transaction([
+        prisma.package.update({
+          where: { id: packageId },
+          data: updateData,
+        }),
+        ...itemUpdates,
+      ]);
+
+      const updatedPackage = await prisma.package.findUnique({
+        where: { id: packageId },
+        include: {
+          dispatcher: { select: { id: true, name: true, email: true } },
+          driver: { select: { id: true, name: true, email: true } },
+          delivery: true,
+          items: {
+            include: { product: true },
+            orderBy: { sequence: 'asc' },
+          },
+        },
+      });
 
       return NextResponse.json({
         message: 'Package route optimized successfully',

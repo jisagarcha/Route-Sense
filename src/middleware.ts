@@ -6,8 +6,22 @@ export default withAuth(
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
 
-    // Admin-only routes
-    if (path.startsWith("/admin") && token?.role !== "ADMIN") {
+    const role = token?.role;
+
+    if (
+      (path.startsWith("/admin/patterns") || path.startsWith("/admin/history")) &&
+      role !== "ADMIN" &&
+      role !== "ANALYST"
+    ) {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+
+    if (
+      path.startsWith("/admin") &&
+      !path.startsWith("/admin/patterns") &&
+      !path.startsWith("/admin/history") &&
+      role !== "ADMIN"
+    ) {
       return NextResponse.redirect(new URL("/", req.url));
     }
 
@@ -17,10 +31,18 @@ export default withAuth(
     callbacks: {
       authorized: ({ token, req }) => {
         // Public paths that don't require authentication
-        const publicPaths = ["/", "/auth/signin", "/auth/signup", "/auth/error"];
+        const publicPaths = ["/", "/results", "/auth/signin", "/auth/signup", "/auth/error"];
         const path = req.nextUrl.pathname;
         
         if (publicPaths.includes(path)) {
+          return true;
+        }
+
+        if (req.method === "GET" && path === "/api/locations") {
+          return true;
+        }
+
+        if (req.method === "POST" && path === "/api/shortest-path") {
           return true;
         }
 

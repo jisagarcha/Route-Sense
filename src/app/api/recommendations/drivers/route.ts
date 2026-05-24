@@ -8,7 +8,7 @@ import { recommendDrivers, calculateDistance } from '@/lib/recommendation-engine
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== 'DISPATCHER') {
+    if (!session || (session.user.role !== 'DISPATCHER' && session.user.role !== 'ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -20,8 +20,8 @@ export async function POST(request: NextRequest) {
       weight === undefined ||
       volume === undefined ||
       isCritical === undefined ||
-      !deliveryLat ||
-      !deliveryLong
+      !Number.isFinite(Number(deliveryLat)) ||
+      !Number.isFinite(Number(deliveryLong))
     ) {
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -30,9 +30,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate estimated distance
-    const startLat = warehouseLat || 27.7172; // Default to Thamel if not provided
-    const startLong = warehouseLong || 85.3120;
-    const distance = calculateDistance(startLat, startLong, deliveryLat, deliveryLong);
+    const startLat = Number.isFinite(Number(warehouseLat)) ? Number(warehouseLat) : 27.7172;
+    const startLong = Number.isFinite(Number(warehouseLong)) ? Number(warehouseLong) : 85.3120;
+    const distance = calculateDistance(startLat, startLong, Number(deliveryLat), Number(deliveryLong));
 
     // Fetch all available drivers with profiles
     const drivers = await prisma.user.findMany({

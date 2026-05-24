@@ -4,15 +4,21 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
-import { Home, MapPin, Route, History, BarChart3, LogOut, User, Map, Navigation as NavigationIcon, Database, Package as PackageIcon, Truck } from 'lucide-react';
+import { Home, History, BarChart3, LogOut, User, Map, Navigation as NavigationIcon, Database, Package as PackageIcon, Truck, type LucideIcon } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 
+interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+}
+
 const getNavItems = (role?: string) => {
-  const baseItems = [
+  const baseItems: NavItem[] = [
     { href: '/', label: 'Home', icon: Home },
   ];
 
-  const roleItems: Record<string, any[]> = {
+  const roleItems: Record<string, NavItem[]> = {
     ADMIN: [
       { href: '/admin/map', label: 'Map', icon: Map },
       { href: '/admin/optimize', label: 'Optimize', icon: NavigationIcon },
@@ -25,11 +31,9 @@ const getNavItems = (role?: string) => {
     ],
     DISPATCHER: [
       { href: '/packages', label: 'Packages', icon: PackageIcon },
-      { href: '/admin/map', label: 'Map', icon: Map },
     ],
     DRIVER: [
       { href: '/delivery', label: 'My Deliveries', icon: Truck },
-      { href: '/admin/map', label: 'Map', icon: Map },
     ],
     ANALYST: [
       { href: '/admin/patterns', label: 'Patterns', icon: BarChart3 },
@@ -44,7 +48,9 @@ export function Navigation() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
 
-  const navItems = getNavItems(session?.user?.role);
+  const navItems = getNavItems(
+    status === 'authenticated' ? session?.user?.role : undefined
+  );
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -56,13 +62,13 @@ export function Navigation() {
   return (
     <nav className="sticky top-0 z-50 border-b bg-white/80 backdrop-blur-md shadow-sm">
       <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           {/* Logo */}
           <Link 
             href="/" 
-            className="group flex items-center gap-2 transition-all duration-300 hover:scale-105"
+            className="group flex shrink-0 items-center gap-2 transition-all duration-300 hover:scale-105"
           >
-            <div className="relative h-18 w-64 transition-transform duration-300 group-hover:brightness-110">
+            <div className="relative h-12 w-44 transition-transform duration-300 group-hover:brightness-110 md:h-[72px] md:w-64">
               <Image
                 src="/routesenselogo.png"
                 alt="RouteSense Logo"
@@ -74,41 +80,43 @@ export function Navigation() {
           </Link>
 
           {/* Navigation Links */}
-          <div className="flex items-center gap-1">
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-1 overflow-x-auto">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
               
               return (
-                <Link key={item.href} href={item.href}>
-                  <Button
-                    variant={active ? 'default' : 'ghost'}
-                    className={`
-                      relative gap-2 transition-all duration-200
-                      ${active 
-                        ? 'bg-primary text-primary-foreground shadow-md' 
-                        : 'hover:bg-primary/10 hover:text-primary hover:shadow-sm'
-                      }
-                      ${active ? 'scale-105' : 'hover:scale-105'}
-                    `}
-                  >
+                <Button
+                  key={item.href}
+                  asChild
+                  variant={active ? 'default' : 'ghost'}
+                  className={`
+                    relative gap-2 transition-all duration-200
+                    ${active
+                      ? 'bg-primary text-primary-foreground shadow-md'
+                      : 'hover:bg-primary/10 hover:text-primary hover:shadow-sm'
+                    }
+                    ${active ? 'scale-105' : 'hover:scale-105'}
+                  `}
+                >
+                  <Link href={item.href}>
                     <Icon className="h-4 w-4" />
-                    <span className="font-medium">{item.label}</span>
+                    <span className="hidden font-medium sm:inline">{item.label}</span>
                     {active && (
                       <span className="absolute -bottom-1 left-1/2 h-0.5 w-3/4 -translate-x-1/2 rounded-full bg-primary-foreground" />
                     )}
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               );
             })}
 
             {/* User Section */}
-            <div className="ml-4 flex items-center gap-2 border-l pl-4">
+              <div className="ml-2 flex shrink-0 items-center gap-2 border-l pl-2 md:ml-4 md:pl-4">
               {status === 'loading' ? (
                 <div className="h-8 w-8 animate-pulse rounded-full bg-gray-200" />
               ) : session ? (
                 <>
-                  <div className="flex flex-col items-end">
+                  <div className="hidden flex-col items-end md:flex">
                     <span className="text-sm font-medium">{session.user.name || 'User'}</span>
                     <span className="text-xs text-gray-500">{session.user.role}</span>
                   </div>
@@ -123,12 +131,12 @@ export function Navigation() {
                   </Button>
                 </>
               ) : (
-                <Link href="/auth/signin">
-                  <Button variant="default" size="sm" className="gap-2">
+                <Button asChild variant="default" size="sm" className="gap-2">
+                  <Link href="/auth/signin">
                     <User className="h-4 w-4" />
                     Sign In
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               )}
             </div>
           </div>

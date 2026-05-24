@@ -1,24 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, MapPin, Clock, Loader2, Package as PackageIcon } from 'lucide-react';
 
 interface PackageData {
   id: string;
   packageName: string;
-  deliveryAddress: string;
-  deliveryLat: number;
-  deliveryLong: number;
+  status: string;
+  deliveryAddress: string | null;
+  deliveryLat: number | null;
+  deliveryLong: number | null;
   totalWeight: number;
   isCritical: boolean;
   delivery: {
     id: string;
     status: string;
-    startedAt: string;
+    startedAt: string | null;
+    completedAt?: string | null;
   } | null;
   items: Array<{
     quantity: number;
@@ -34,10 +37,29 @@ export default function ActiveDeliveryPage() {
   const [completing, setCompleting] = useState(false);
   const [packageData, setPackageData] = useState<PackageData | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [error, setError] = useState('');
+
+  const fetchPackageData = useCallback(async () => {
+    setError('');
+    try {
+      const res = await fetch(`/api/packages/${packageId}`);
+      const data = await res.json();
+      if (res.ok) {
+        setPackageData(data.package);
+      } else {
+        setError(data.error || 'Failed to fetch delivery');
+      }
+    } catch (error) {
+      console.error('Error fetching package:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch delivery');
+    } finally {
+      setLoading(false);
+    }
+  }, [packageId]);
 
   useEffect(() => {
     fetchPackageData();
-  }, [packageId]);
+  }, [fetchPackageData]);
 
   useEffect(() => {
     if (packageData?.delivery?.startedAt) {
@@ -52,39 +74,30 @@ export default function ActiveDeliveryPage() {
     }
   }, [packageData]);
 
-  const fetchPackageData = async () => {
-    try {
-      const res = await fetch(`/api/packages/${packageId}`);
-      const data = await res.json();
-      if (res.ok) {
-        setPackageData(data.package);
-      }
-    } catch (error) {
-      console.error('Error fetching package:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCompleteDelivery = async () => {
     if (!confirm('Mark this delivery as completed?')) return;
     
     setCompleting(true);
+    setError('');
     try {
       const res = await fetch(`/api/deliveries/${packageId}/complete`, {
         method: 'POST'
       });
+      const data = await res.json();
 
       if (res.ok) {
-        alert('Delivery completed successfully!');
+        setPackageData((currentPackage) =>
+          currentPackage
+            ? { ...currentPackage, status: 'DELIVERED', delivery: data.delivery }
+            : currentPackage
+        );
         router.push('/delivery');
       } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to complete delivery');
+        setError(data.error || 'Failed to complete delivery');
       }
     } catch (error) {
       console.error('Error completing delivery:', error);
-      alert('Failed to complete delivery');
+      setError(error instanceof Error ? error.message : 'Failed to complete delivery');
     } finally {
       setCompleting(false);
     }
@@ -122,6 +135,12 @@ export default function ActiveDeliveryPage() {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Active Delivery</h1>
 
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
         {/* Timer Card */}
         <Card className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200">
           <CardContent className="pt-6">
@@ -158,10 +177,12 @@ export default function ActiveDeliveryPage() {
                 <MapPin className="h-5 w-5" />
                 <span className="font-semibold">Delivery Address</span>
               </div>
-              <p className="text-lg ml-7">{packageData.deliveryAddress}</p>
-              <p className="text-sm text-gray-500 ml-7">
-                Coordinates: {packageData.deliveryLat.toFixed(4)}, {packageData.deliveryLong.toFixed(4)}
-              </p>
+              <p className="text-lg ml-7">{packageData.deliveryAddress || 'Delivery address pending'}</p>
+              {packageData.deliveryLat !== null && packageData.deliveryLong !== null && (
+                <p className="text-sm text-gray-500 ml-7">
+                  Coordinates: {packageData.deliveryLat.toFixed(4)}, {packageData.deliveryLong.toFixed(4)}
+                </p>
+              )}
             </div>
 
             <div className="p-4 bg-gray-50 rounded">
@@ -187,7 +208,7 @@ export default function ActiveDeliveryPage() {
         {/* Complete Button */}
         <Button
           onClick={handleCompleteDelivery}
-          disabled={completing}
+          disabled={completing || packageData.status !== 'IN_TRANSIT'}
           size="lg"
           className="w-full text-lg py-6"
         >

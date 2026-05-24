@@ -21,6 +21,9 @@ export async function POST(request: Request) {
       );
     }
 
+    const allowedSelfServiceRoles = new Set(["DISPATCHER", "DRIVER"]);
+    const userRole = allowedSelfServiceRoles.has(role) ? role : "DISPATCHER";
+
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email },
@@ -42,7 +45,20 @@ export async function POST(request: Request) {
         name,
         email,
         password: hashedPassword,
-        role: role || "DISPATCHER",
+        role: userRole,
+        ...(userRole === "DRIVER" && {
+          driverProfile: {
+            create: {
+              vehicleType: "2-wheeler",
+              maxCapacity: 30,
+              maxVolume: 12,
+              experienceYears: 0,
+              rating: 5,
+              totalDeliveries: 0,
+              isAvailable: true,
+            },
+          },
+        }),
       },
       select: {
         id: true,

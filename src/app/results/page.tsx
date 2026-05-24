@@ -1,16 +1,11 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useCallback, useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { MapPin, Route, Navigation, BarChart3, ArrowLeft, Share2, Download, RefreshCw, Clock, TrendingDown } from 'lucide-react';
-
-interface Location {
-  id: number;
-  name: string;
-}
 
 interface RouteResult {
   path: Array<{ id: number; name: string }>;
@@ -43,16 +38,7 @@ function ResultsContent() {
   const sourceId = searchParams.get('source');
   const targetId = searchParams.get('target');
 
-  useEffect(() => {
-    if (sourceId && targetId) {
-      fetchRoute();
-    } else {
-      setError('Invalid route parameters');
-      setLoading(false);
-    }
-  }, [sourceId, targetId]);
-
-  const fetchRoute = async () => {
+  const fetchRoute = useCallback(async () => {
     setLoading(true);
     setError('');
 
@@ -88,7 +74,16 @@ function ResultsContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sourceId, targetId]);
+
+  useEffect(() => {
+    if (sourceId && targetId) {
+      fetchRoute();
+    } else {
+      setError('Invalid route parameters');
+      setLoading(false);
+    }
+  }, [fetchRoute, sourceId, targetId]);
 
   const handleShare = () => {
     const url = window.location.href;

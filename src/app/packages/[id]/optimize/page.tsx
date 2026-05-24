@@ -101,7 +101,7 @@ export default function OptimizePackagePage({ params }: { params: Promise<{ id: 
       if (packageData.warehouseLat && packageData.warehouseLong) {
         locations.push({
           id: 0,
-          name: '🏭 Warehouse',
+        name: 'Warehouse',
           latitude: packageData.warehouseLat,
           longitude: packageData.warehouseLong,
           description: packageData.warehouseAddress || 'Warehouse'
@@ -110,7 +110,7 @@ export default function OptimizePackagePage({ params }: { params: Promise<{ id: 
         // Default warehouse location (Kathmandu)
         locations.push({
           id: 0,
-          name: '🏭 Warehouse',
+          name: 'Warehouse',
           latitude: 27.7172,
           longitude: 85.324,
           description: 'Default Warehouse Location'
@@ -161,6 +161,15 @@ export default function OptimizePackagePage({ params }: { params: Promise<{ id: 
       return;
     }
 
+    const hasInvalidCoordinate = deliveryLocations.some(
+      (loc) => !Number.isFinite(loc.latitude) || !Number.isFinite(loc.longitude)
+    );
+
+    if (hasInvalidCoordinate) {
+      setError("All delivery locations must have valid coordinates");
+      return;
+    }
+
     setSelectedAlgorithm(algorithm);
     setError("");
     setSuccess("");
@@ -173,6 +182,7 @@ export default function OptimizePackagePage({ params }: { params: Promise<{ id: 
         body: JSON.stringify({
           warehouseLat: deliveryLocations[0].latitude,
           warehouseLong: deliveryLocations[0].longitude,
+          algorithm: algorithm === 'Genetic' ? 'genetic' : 'nearest-neighbor',
           stops: deliveryLocations.slice(1).map(loc => ({
             lat: loc.latitude,
             long: loc.longitude,
@@ -268,7 +278,6 @@ export default function OptimizePackagePage({ params }: { params: Promise<{ id: 
         throw new Error(data.error || 'Failed to update package');
       }
 
-      // Show success message
       setSuccess(data.message || 'Route optimized successfully! Redirecting to driver assignment...');
       
       // Wait a moment before redirect so user can see the success message
@@ -428,7 +437,7 @@ export default function OptimizePackagePage({ params }: { params: Promise<{ id: 
                   >
                     <div className="flex items-start gap-2">
                       {index === 0 ? (
-                        <div className="flex-shrink-0 text-lg">🏭</div>
+                        <div className="flex-shrink-0 text-lg">W</div>
                       ) : (
                         <div className="flex-shrink-0 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
                           {index}

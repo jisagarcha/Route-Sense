@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Package as PackageIcon, MapPin, User, Calendar, Loader2, Plus, Trash2 } from 'lucide-react';
 
 interface Package {
@@ -17,61 +17,93 @@ interface Package {
   totalWeight: number;
   totalVolume: number;
   isCritical: boolean;
-  deliveryAddress: string;
+  deliveryAddress: string | null;
   createdAt: string;
   dispatcher: { name: string | null };
   driver: { name: string | null } | null;
-  items: any[];
+  items: Array<{ id: string }>;
 }
+
+const PAGE_SIZE = 20;
 
 export default function PackagesPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
   const [packages, setPackages] = useState<Package[]>([]);
-  const [filteredPackages, setFilteredPackages] = useState<Package[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [page, setPage] = useState(0);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    limit: PAGE_SIZE,
+    offset: 0,
+    hasMore: false,
+  });
 
-  const filterPackages = () => {
-    let filtered = [...packages];
-
-    if (searchQuery) {
-      filtered = filtered.filter(pkg =>
-        pkg.packageName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        pkg.deliveryAddress.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    if (statusFilter !== 'ALL') {
-      filtered = filtered.filter(pkg => pkg.status === statusFilter);
-    }
-
-    setFilteredPackages(filtered);
-  };
-
-  useEffect(() => {
-    fetchPackages();
-  }, []);
+  const filteredPackages = useMemo(() => {
+    const query = debouncedSearchQuery.trim().toLowerCase();
+    return packages.filter((pkg) => {
+      const matchesSearch = !query ||
+        pkg.packageName.toLowerCase().includes(query) ||
+        (pkg.deliveryAddress || '').toLowerCase().includes(query);
+      const matchesStatus = statusFilter === 'ALL' || pkg.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [packages, debouncedSearchQuery, statusFilter]);
 
   useEffect(() => {
-    filterPackages();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [packages, searchQuery, statusFilter]);
+    const timer = window.setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 250);
 
-  const fetchPackages = async () => {
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [statusFilter]);
+
+  const fetchPackages = useCallback(async (pageIndex = 0) => {
+    setError('');
     try {
-      const res = await fetch('/api/packages');
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(pageIndex * PAGE_SIZE),
+      });
+      if (statusFilter !== 'ALL') {
+        params.set('status', statusFilter);
+      }
+
+      const res = await fetch(`/api/packages?${params}`);
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to fetch packages');
+      }
+
       setPackages(data.packages || []);
+      setPagination(data.pagination || {
+        total: data.packages?.length || 0,
+        limit: PAGE_SIZE,
+        offset: pageIndex * PAGE_SIZE,
+        hasMore: false,
+      });
     } catch (error) {
       console.error('Error fetching packages:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch packages');
       setPackages([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter]);
+
+  useEffect(() => {
+    fetchPackages(page);
+  }, [fetchPackages, page]);
 
   const handleDeletePackage = async (id: string) => {
     if (!confirm('Are you sure you want to delete this package?')) return;
@@ -83,14 +115,18 @@ export default function PackagesPage() {
       });
 
       if (res.ok) {
-        setPackages(packages.filter(pkg => pkg.id !== id));
+        setPackages((currentPackages) => currentPackages.filter(pkg => pkg.id !== id));
+        setPagination((currentPagination) => ({
+          ...currentPagination,
+          total: Math.max(0, currentPagination.total - 1),
+        }));
       } else {
         const data = await res.json();
-        alert(data.error || 'Failed to delete package');
+        setError(data.error || 'Failed to delete package');
       }
     } catch (error) {
       console.error('Error deleting package:', error);
-      alert('Failed to delete package');
+      setError(error instanceof Error ? error.message : 'Failed to delete package');
     } finally {
       setDeleting(null);
     }
@@ -140,6 +176,12 @@ export default function PackagesPage() {
         </div>
 
         {/* Filters */}
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
         <Card className="mb-6">
           <CardContent className="pt-6">
             <div className="grid md:grid-cols-3 gap-4">
@@ -166,7 +208,7 @@ export default function PackagesPage() {
               </div>
               <div className="flex items-center justify-end">
                 <span className="text-sm text-gray-600">
-                  Showing {filteredPackages.length} of {packages.length} packages
+                  Showing {filteredPackages.length} of {pagination.total} packages
                 </span>
               </div>
             </div>
@@ -205,7 +247,7 @@ export default function PackagesPage() {
                       <div className="grid md:grid-cols-2 gap-2 text-sm text-gray-600">
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4" />
-                          <span>{pkg.deliveryAddress}</span>
+                          <span>{pkg.deliveryAddress || 'Delivery address pending'}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4" />
@@ -272,6 +314,28 @@ export default function PackagesPage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        )}
+
+        {pagination.total > pagination.limit && (
+          <div className="mt-6 flex items-center justify-between">
+            <Button
+              variant="outline"
+              disabled={page === 0 || loading}
+              onClick={() => setPage((currentPage) => Math.max(0, currentPage - 1))}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-gray-600">
+              Page {page + 1} of {Math.max(1, Math.ceil(pagination.total / pagination.limit))}
+            </span>
+            <Button
+              variant="outline"
+              disabled={!pagination.hasMore || loading}
+              onClick={() => setPage((currentPage) => currentPage + 1)}
+            >
+              Next
+            </Button>
           </div>
         )}
       </div>

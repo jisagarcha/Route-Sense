@@ -1,15 +1,27 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { DriverRecommendations } from '@/components/packages/driver-recommendations';
 import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+interface PackageData {
+  id: string;
+  packageName: string;
+  totalWeight: number;
+  totalVolume: number;
+  isCritical: boolean;
+  deliveryLat: number | null;
+  deliveryLong: number | null;
+}
 
 export default function AssignDriverPage() {
   const params = useParams();
+  const router = useRouter();
   const packageId = params.id as string;
   const [loading, setLoading] = useState(true);
-  const [packageData, setPackageData] = useState<any>(null);
+  const [packageData, setPackageData] = useState<PackageData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -55,9 +67,8 @@ export default function AssignDriverPage() {
     );
   }
 
-  console.log('Package Data:', packageData);
   // Check if package has delivery coordinates set
-  if (!packageData.deliveryLat || !packageData.deliveryLong) {
+  if (packageData.deliveryLat === null || packageData.deliveryLong === null) {
     return (
       <div className="container mx-auto py-8 px-4">
         <div className="text-center py-12">
@@ -67,12 +78,9 @@ export default function AssignDriverPage() {
           <p className="text-gray-600 mb-6">
             Please complete the route optimization step to set delivery locations.
           </p>
-          <button
-            onClick={() => window.location.href = `/packages/${packageId}/optimize`}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
+          <Button onClick={() => router.push(`/packages/${packageId}/optimize`)}>
             Go to Route Optimization
-          </button>
+          </Button>
         </div>
       </div>
     );

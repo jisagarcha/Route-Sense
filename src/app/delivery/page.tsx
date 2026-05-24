@@ -1,21 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Package as PackageIcon, MapPin, Clock, CheckCircle, Loader2, Play } from 'lucide-react';
 
 interface PackageData {
   id: string;
   packageName: string;
+  status: string;
   totalWeight: number;
   totalVolume: number;
   isCritical: boolean;
-  deliveryAddress: string;
-  deliveryLat: number;
-  deliveryLong: number;
+  deliveryAddress: string | null;
+  deliveryLat: number | null;
+  deliveryLong: number | null;
   delivery: {
     id: string;
     status: string;
@@ -34,43 +36,62 @@ interface PackageData {
 export default function DeliveryPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [startingId, setStartingId] = useState<string | null>(null);
+  const [error, setError] = useState('');
   const [packages, setPackages] = useState<PackageData[]>([]);
 
-  useEffect(() => {
-    fetchAssignedPackages();
-  }, []);
-
-  const fetchAssignedPackages = async () => {
+  const fetchAssignedPackages = useCallback(async () => {
+    setError('');
     try {
       const res = await fetch('/api/packages');
       const data = await res.json();
-      // Filter packages assigned to this driver
-      const driverPackages = data.packages.filter((pkg: any) => 
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to fetch deliveries');
+      }
+
+      const driverPackages = (data.packages as PackageData[]).filter((pkg) =>
         pkg.status === 'ASSIGNED' || pkg.status === 'IN_TRANSIT'
       );
       setPackages(driverPackages);
     } catch (error) {
       console.error('Error fetching packages:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch deliveries');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchAssignedPackages();
+  }, [fetchAssignedPackages]);
 
   const handleStartDelivery = async (packageId: string) => {
+    setStartingId(packageId);
+    setError('');
     try {
       const res = await fetch(`/api/deliveries/${packageId}/start`, {
         method: 'POST'
       });
+      const data = await res.json();
 
       if (res.ok) {
+        setPackages((currentPackages) =>
+          currentPackages.map((pkg) =>
+            pkg.id === packageId
+              ? { ...pkg, status: 'IN_TRANSIT', delivery: data.delivery }
+              : pkg
+          )
+        );
         router.push(`/delivery/${packageId}`);
       } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to start delivery');
+        setError(data.error || 'Failed to start delivery');
       }
     } catch (error) {
       console.error('Error starting delivery:', error);
-      alert('Failed to start delivery');
+      setError(error instanceof Error ? error.message : 'Failed to start delivery');
+    } finally {
+      setStartingId(null);
     }
   };
 
@@ -106,6 +127,12 @@ export default function DeliveryPage() {
           Your assigned delivery packages
         </p>
 
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
         {packages.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -122,7 +149,7 @@ export default function DeliveryPage() {
                     <div>
                       <CardTitle className="flex items-center gap-2 mb-2">
                         {pkg.packageName}
-                        {getStatusBadge(pkg.delivery?.status || 'ASSIGNED')}
+                        {getStatusBadge(pkg.status)}
                         {pkg.isCritical && (
                           <Badge variant="destructive">Critical</Badge>
                         )}
@@ -130,7 +157,7 @@ export default function DeliveryPage() {
                       <div className="text-sm text-gray-600">
                         <div className="flex items-center gap-2 mb-1">
                           <MapPin className="h-4 w-4" />
-                          {pkg.deliveryAddress}
+                          {pkg.deliveryAddress || 'Delivery address pending'}
                         </div>
                         <div className="flex items-center gap-2">
                           <PackageIcon className="h-4 w-4" />
@@ -176,16 +203,26 @@ export default function DeliveryPage() {
 
                     {/* Actions */}
                     <div className="flex gap-2 pt-2">
-                      {pkg.delivery?.status === 'ASSIGNED' && (
+                      {pkg.status === 'ASSIGNED' && (
                         <Button
                           onClick={() => handleStartDelivery(pkg.id)}
+                          disabled={startingId === pkg.id}
                           className="flex-1"
                         >
-                          <Play className="mr-2 h-4 w-4" />
-                          Start Delivery
+                          {startingId === pkg.id ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Starting...
+                            </>
+                          ) : (
+                            <>
+                              <Play className="mr-2 h-4 w-4" />
+                              Start Delivery
+                            </>
+                          )}
                         </Button>
                       )}
-                      {pkg.delivery?.status === 'IN_TRANSIT' && (
+                      {pkg.status === 'IN_TRANSIT' && (
                         <Button
                           onClick={() => router.push(`/delivery/${pkg.id}`)}
                           className="flex-1"

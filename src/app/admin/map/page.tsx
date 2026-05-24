@@ -226,7 +226,7 @@ export default function MapViewPage() {
         body: JSON.stringify({
           locationIds: locationIds,
           startLocationId: parseInt(startingPoint),
-          algorithm: algorithm.toLowerCase(),
+          algorithm,
           returnToStart: false
         }),
       });
@@ -722,47 +722,47 @@ export default function MapViewPage() {
                     <Label className="text-xs font-semibold mb-1 block">Select Algorithm</Label>
                     <div className="grid grid-cols-4 gap-2">
                       <Button
-                        variant={selectedAlgorithm === 'Dijkstra' ? 'default' : 'outline'}
+                        variant={selectedAlgorithm === 'nearest-neighbor' ? 'default' : 'outline'}
                         size="sm"
-                        onClick={() => handleOptimizeRoute('Dijkstra')}
+                        onClick={() => handleOptimizeRoute('nearest-neighbor')}
                         disabled={!startingPoint || loading}
                         className="h-14 flex flex-col items-center justify-center text-xs"
                       >
-                        <div className="text-lg mb-0.5">🔵</div>
-                        <div className="font-semibold">Dijkstra</div>
+                        <div className="text-lg mb-0.5">NN</div>
+                        <div className="font-semibold">Nearest</div>
                       </Button>
 
                       <Button
-                        variant={selectedAlgorithm === 'Bellman-Ford' ? 'default' : 'outline'}
+                        variant={selectedAlgorithm === '2-opt' ? 'default' : 'outline'}
                         size="sm"
-                        onClick={() => handleOptimizeRoute('Bellman-Ford')}
+                        onClick={() => handleOptimizeRoute('2-opt')}
                         disabled={!startingPoint || loading}
                         className="h-14 flex flex-col items-center justify-center text-xs"
                       >
-                        <div className="text-lg mb-0.5">🟢</div>
-                        <div className="font-semibold">Floyd-W</div>
+                        <div className="text-lg mb-0.5">2O</div>
+                        <div className="font-semibold">2-Opt</div>
                       </Button>
 
                       <Button
-                        variant={selectedAlgorithm === 'BFS' ? 'default' : 'outline'}
+                        variant={selectedAlgorithm === 'simulated-annealing' ? 'default' : 'outline'}
                         size="sm"
-                        onClick={() => handleOptimizeRoute('BFS')}
+                        onClick={() => handleOptimizeRoute('simulated-annealing')}
                         disabled={!startingPoint || loading}
                         className="h-14 flex flex-col items-center justify-center text-xs"
                       >
-                        <div className="text-lg mb-0.5">🟡</div>
-                        <div className="font-semibold">BFS</div>
+                        <div className="text-lg mb-0.5">SA</div>
+                        <div className="font-semibold">Anneal</div>
                       </Button>
 
                       <Button
-                        variant={selectedAlgorithm === 'A*' ? 'default' : 'outline'}
+                        variant={selectedAlgorithm === 'genetic' ? 'default' : 'outline'}
                         size="sm"
-                        onClick={() => handleOptimizeRoute('A*')}
+                        onClick={() => handleOptimizeRoute('genetic')}
                         disabled={!startingPoint || loading}
                         className="h-14 flex flex-col items-center justify-center text-xs"
                       >
-                        <div className="text-lg mb-0.5">🔴</div>
-                        <div className="font-semibold">A*</div>
+                        <div className="text-lg mb-0.5">GA</div>
+                        <div className="font-semibold">Genetic</div>
                       </Button>
                     </div>
                   </div>

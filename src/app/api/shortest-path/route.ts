@@ -47,11 +47,21 @@ export async function POST(request: NextRequest) {
           where: { id: targetLocationId },
         });
         
+        const cachedLocations = await prisma.location.findMany({
+          where: { id: { in: cachedResult.path } },
+          select: { id: true, name: true },
+        });
+        const cachedLocationMap = new Map(cachedLocations.map((loc) => [loc.id, loc.name]));
+        const cachedPath = cachedResult.path.map((id) => ({
+          id,
+          name: cachedLocationMap.get(id) || 'Unknown',
+        }));
+
         return NextResponse.json({
           found: cachedResult.found,
           cached: true,
           route: {
-            path: cachedResult.path,
+            path: cachedPath,
             totalDistance: cachedResult.distance,
             hops: cachedResult.path.length - 1,
             sourceLocation: sourceLocation?.name,
@@ -140,7 +150,7 @@ export async function POST(request: NextRequest) {
     let result;
     let usedAlgorithm = 'Dijkstra';
     
-    if (algorithm === 'astar' && allLocations.every((loc: { latitude: number | null; longitude: number | null }) => loc.latitude && loc.longitude)) {
+    if (algorithm === 'astar' && allLocations.every((loc: { latitude: number | null; longitude: number | null }) => loc.latitude !== null && loc.longitude !== null)) {
       result = astar(adjacencyList, sourceLocationId, targetLocationId, nodeMap);
       usedAlgorithm = 'A*';
     } else {

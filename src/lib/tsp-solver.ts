@@ -144,6 +144,7 @@ export function twoOpt(
   let path = [...initialPath];
   let improved = true;
   let iterations = 0;
+  let currentDistance = calculatePathDistance(path, distanceMatrix);
 
   while (improved && iterations < maxIterations) {
     improved = false;
@@ -153,23 +154,22 @@ export function twoOpt(
       for (let j = i + 1; j < path.length; j++) {
         // Try reversing the segment between i and j
         const newPath = twoOptSwap(path, i, j);
-        const currentDistance = calculatePathDistance(path, distanceMatrix);
         const newDistance = calculatePathDistance(newPath, distanceMatrix);
 
         if (newDistance < currentDistance) {
           path = newPath;
+          currentDistance = newDistance;
           improved = true;
         }
       }
     }
   }
 
-  const totalDistance = calculatePathDistance(path, distanceMatrix);
   const executionTime = performance.now() - startTime;
 
   return {
     path,
-    totalDistance,
+    totalDistance: currentDistance,
     algorithm: "2-Opt",
     executionTime,
     iterations,
@@ -274,7 +274,7 @@ export function geneticAlgorithm(
   const remainingIds = locationIds.filter((id) => id !== fixedStart);
 
   for (let i = 0; i < populationSize; i++) {
-    const shuffled = [...remainingIds].sort(() => Math.random() - 0.5);
+    const shuffled = shuffle(remainingIds);
     population.push([fixedStart, ...shuffled]);
   }
 
@@ -382,6 +382,15 @@ function fillRemaining(child: (number | null)[], parent: number[]): void {
       }
     }
   }
+}
+
+function shuffle(values: number[]): number[] {
+  const result = [...values];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
 }
 
 /**

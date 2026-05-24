@@ -175,7 +175,7 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
   const routePath = [];
 
   // Add warehouse
-  if (packageData.warehouseLat && packageData.warehouseLong) {
+  if (packageData.warehouseLat !== null && packageData.warehouseLong !== null) {
     mapLocations.push({
       id: 0,
       name: 'Warehouse',
@@ -192,10 +192,10 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
   );
 
   sortedItems.forEach((item, index) => {
-    if (item.deliveryLat && item.deliveryLong) {
+    if (item.deliveryLat !== null && item.deliveryLong !== null) {
       mapLocations.push({
         id: index + 1,
-        name: `Stop ${item.sequence !== null ? item.sequence + 1 : index + 1}: ${item.product.name}`,
+        name: `Stop ${item.sequence !== null ? item.sequence : index + 1}: ${item.product.name}`,
         latitude: item.deliveryLat,
         longitude: item.deliveryLong,
         description: `${item.quantity}x ${item.product.name}${item.deliveryAddress ? ` - ${item.deliveryAddress}` : ''}`
@@ -205,15 +205,6 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
   });
 
   const hasRouteData = mapLocations.length > 0;
-
-  // Debug logging
-  console.log('Map Data:', {
-    hasRouteData,
-    mapLocations,
-    routePath,
-    warehouseLat: packageData.warehouseLat,
-    warehouseLong: packageData.warehouseLong
-  });
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -242,7 +233,7 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
             </div>
             {packageData.isCritical && (
               <Badge variant="destructive" className="mt-2">
-                ⚠️ Critical Package
+                Critical Package
               </Badge>
             )}
           </div>
@@ -357,7 +348,7 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
                       <div className="flex items-center gap-2 mb-1">
                         {item.sequence !== null && (
                           <Badge variant="outline" className="text-xs">
-                            #{item.sequence + 1}
+                            #{item.sequence}
                           </Badge>
                         )}
                         <span className="font-semibold text-sm">{item.product.name}</span>
@@ -373,7 +364,7 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
                       )}
                     </div>
                     {item.product.isCritical && (
-                      <Badge variant="destructive" className="text-xs">⚠️</Badge>
+                      <Badge variant="destructive" className="text-xs">Critical</Badge>
                     )}
                   </div>
                 </div>
@@ -479,7 +470,7 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
             <RouteMap
               locations={mapLocations}
               routePath={routePath}
-              center={packageData.warehouseLat && packageData.warehouseLong 
+              center={packageData.warehouseLat !== null && packageData.warehouseLong !== null 
                 ? [packageData.warehouseLat, packageData.warehouseLong]
                 : [27.7172, 85.324]
               }

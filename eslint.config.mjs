@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "create-driver-profile.js",
+    "seed-*.js",
+    "prisma/seed*.js",
   ]),
 ]);
 

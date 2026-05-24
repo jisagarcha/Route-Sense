@@ -41,24 +41,21 @@ class PriorityQueue<T> {
   private items: Array<{ element: T; priority: number }> = [];
 
   enqueue(element: T, priority: number): void {
-    const item = { element, priority };
-    let added = false;
-
-    for (let i = 0; i < this.items.length; i++) {
-      if (item.priority < this.items[i].priority) {
-        this.items.splice(i, 0, item);
-        added = true;
-        break;
-      }
-    }
-
-    if (!added) {
-      this.items.push(item);
-    }
+    this.items.push({ element, priority });
+    this.bubbleUp(this.items.length - 1);
   }
 
   dequeue(): T | undefined {
-    return this.items.shift()?.element;
+    if (this.items.length === 0) return undefined;
+    const min = this.items[0];
+    const end = this.items.pop();
+
+    if (this.items.length > 0 && end) {
+      this.items[0] = end;
+      this.sinkDown(0);
+    }
+
+    return min.element;
   }
 
   isEmpty(): boolean {
@@ -67,6 +64,55 @@ class PriorityQueue<T> {
 
   size(): number {
     return this.items.length;
+  }
+
+  private bubbleUp(index: number): void {
+    while (index > 0) {
+      const parentIndex = Math.floor((index - 1) / 2);
+      if (this.items[parentIndex].priority <= this.items[index].priority) {
+        break;
+      }
+
+      [this.items[parentIndex], this.items[index]] = [
+        this.items[index],
+        this.items[parentIndex],
+      ];
+      index = parentIndex;
+    }
+  }
+
+  private sinkDown(index: number): void {
+    const length = this.items.length;
+
+    while (true) {
+      const leftChildIndex = 2 * index + 1;
+      const rightChildIndex = 2 * index + 2;
+      let smallestIndex = index;
+
+      if (
+        leftChildIndex < length &&
+        this.items[leftChildIndex].priority < this.items[smallestIndex].priority
+      ) {
+        smallestIndex = leftChildIndex;
+      }
+
+      if (
+        rightChildIndex < length &&
+        this.items[rightChildIndex].priority < this.items[smallestIndex].priority
+      ) {
+        smallestIndex = rightChildIndex;
+      }
+
+      if (smallestIndex === index) {
+        break;
+      }
+
+      [this.items[index], this.items[smallestIndex]] = [
+        this.items[smallestIndex],
+        this.items[index],
+      ];
+      index = smallestIndex;
+    }
   }
 }
 
@@ -139,6 +185,7 @@ export function dijkstra(
 
   const distances: { [nodeId: number]: number } = {};
   const previous: { [nodeId: number]: number | null } = {};
+  const visited = new Set<number>();
   const pq = new PriorityQueue<number>();
 
   // Initialize
@@ -152,6 +199,8 @@ export function dijkstra(
   while (!pq.isEmpty()) {
     const current = pq.dequeue();
     if (current === undefined) break;
+    if (visited.has(current)) continue;
+    visited.add(current);
 
     nodesExplored++;
 
@@ -225,6 +274,7 @@ export function astar(
   const gScore: { [nodeId: number]: number } = {};
   const fScore: { [nodeId: number]: number } = {};
   const previous: { [nodeId: number]: number | null } = {};
+  const visited = new Set<number>();
   const pq = new PriorityQueue<number>();
 
   // Heuristic function: straight-line distance to target
@@ -255,6 +305,8 @@ export function astar(
   while (!pq.isEmpty()) {
     const current = pq.dequeue();
     if (current === undefined) break;
+    if (visited.has(current)) continue;
+    visited.add(current);
 
     nodesExplored++;
 

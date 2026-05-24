@@ -4,8 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(
-  req: NextRequest,
-  { params }: { params: { packageId: string } }
+  _req: NextRequest,
+  { params }: { params: Promise<{ packageId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,9 +14,8 @@ export async function POST(
       return NextResponse.json({ error: 'Only drivers can start deliveries' }, { status: 403 });
     }
 
-    const packageId = params.packageId;
+    const { packageId } = await params;
 
-    // Get the package and its delivery
     const pkg = await prisma.package.findUnique({
       where: { id: packageId },
       include: { delivery: true }
@@ -36,25 +35,38 @@ export async function POST(
       return NextResponse.json({ error: 'Package is not in ASSIGNED status' }, { status: 400 });
     }
 
-    // Update package status to IN_TRANSIT
-    await prisma.package.update({
-      where: { id: packageId },
-      data: { status: 'IN_TRANSIT' }
-    });
-
-    // Update delivery status and set startedAt
-    if (pkg.delivery) {
-      await prisma.delivery.update({
-        where: { id: pkg.delivery.id },
-        data: {
+    const startedAt = new Date();
+    const [updatedPackage, delivery] = await prisma.$transaction([
+      prisma.package.update({
+        where: { id: packageId },
+        data: { status: 'IN_TRANSIT' },
+        include: {
+          delivery: true,
+          items: { include: { product: true } },
+        },
+      }),
+      prisma.delivery.upsert({
+        where: { packageId },
+        update: {
           status: 'IN_PROGRESS',
-          startedAt: new Date()
-        }
-      });
-    }
+          startedAt,
+        },
+        create: {
+          packageId,
+          status: 'IN_PROGRESS',
+          startedAt,
+        },
+      }),
+      prisma.driverProfile.updateMany({
+        where: { userId: session.user.id },
+        data: { isAvailable: false },
+      }),
+    ]);
 
     return NextResponse.json({
-      message: 'Delivery started successfully'
+      message: 'Delivery started successfully',
+      package: updatedPackage,
+      delivery,
     });
 
   } catch (error) {

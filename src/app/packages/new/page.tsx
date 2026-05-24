@@ -1,4 +1,4 @@
-import { PackageCreationForm } from '@/components/packages/package-creation-form';
+import { PackageCreationFormV2 } from '@/components/packages/package-creation-form-v2';
 
 export default function NewPackagePage() {
   return (
@@ -8,7 +8,7 @@ export default function NewPackagePage() {
         <p className="text-gray-600 mb-8">
           Select products, enter delivery details, and get AI-powered driver recommendations
         </p>
-        <PackageCreationForm />
+        <PackageCreationFormV2 />
       </div>
     </div>
   );
