@@ -1,12 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, MapPin, Clock, Loader2, Package as PackageIcon } from 'lucide-react';
+import { CheckCircle, MapPin, Clock, Loader2, Package as PackageIcon, LocateFixed } from 'lucide-react';
+import { DeliveryMap } from '@/components/delivery-planner/delivery-map';
+import { useGeolocation } from '@/components/delivery-planner/use-geolocation';
+import type { PlannerStop } from '@/components/delivery-planner/types';
+import type { GeoPoint } from '@/lib/delivery-routing';
 
 interface PackageData {
   id: string;
@@ -15,6 +19,9 @@ interface PackageData {
   deliveryAddress: string | null;
   deliveryLat: number | null;
   deliveryLong: number | null;
+  warehouseLat: number | null;
+  warehouseLong: number | null;
+  warehouseAddress: string | null;
   totalWeight: number;
   isCritical: boolean;
   delivery: {
@@ -32,6 +39,13 @@ interface PackageData {
 export default function ActiveDeliveryPage() {
   const params = useParams();
   const router = useRouter();
+  const {
+    position: livePosition,
+    watching: gpsWatching,
+    error: gpsError,
+    start: startGpsTracking,
+    stop: stopGpsTracking,
+  } = useGeolocation();
   const packageId = params.packageId as string;
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
@@ -60,6 +74,16 @@ export default function ActiveDeliveryPage() {
   useEffect(() => {
     fetchPackageData();
   }, [fetchPackageData]);
+
+  useEffect(() => {
+    if (packageData?.status === 'IN_TRANSIT') {
+      startGpsTracking();
+    }
+
+    return () => {
+      stopGpsTracking();
+    };
+  }, [packageData?.status, startGpsTracking, stopGpsTracking]);
 
   useEffect(() => {
     if (packageData?.delivery?.startedAt) {
@@ -109,6 +133,38 @@ export default function ActiveDeliveryPage() {
     const secs = seconds % 60;
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
+
+  const depot = useMemo<GeoPoint>(() => ({
+    lat: Number.isFinite(packageData?.warehouseLat) ? Number(packageData?.warehouseLat) : 27.7172,
+    lng: Number.isFinite(packageData?.warehouseLong) ? Number(packageData?.warehouseLong) : 85.3120,
+  }), [packageData?.warehouseLat, packageData?.warehouseLong]);
+
+  const stops = useMemo<PlannerStop[]>(() => {
+    if (
+      !packageData ||
+      !Number.isFinite(packageData.deliveryLat) ||
+      !Number.isFinite(packageData.deliveryLong)
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        id: packageData.id,
+        address: packageData.deliveryAddress || packageData.packageName,
+        resolvedAddress: packageData.deliveryAddress || packageData.packageName,
+        recipientName: packageData.packageName,
+        notes: '',
+        priority: packageData.isCritical ? 'HIGH' : 'NORMAL',
+        timeWindowStart: '',
+        timeWindowEnd: '',
+        lat: Number(packageData.deliveryLat),
+        lng: Number(packageData.deliveryLong),
+        status: packageData.status === 'DELIVERED' ? 'COMPLETED' : 'PENDING',
+        estimatedArrivalLabel: undefined,
+      },
+    ];
+  }, [packageData]);
 
   if (loading) {
     return (
@@ -201,6 +257,41 @@ export default function ActiveDeliveryPage() {
                   <span>{packageData.totalWeight} kg</span>
                 </div>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <LocateFixed className="h-6 w-6" />
+              Live Route Map
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+              {gpsError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{gpsError}</AlertDescription>
+                </Alert>
+              )}
+            <div className="overflow-hidden rounded-md border border-gray-200">
+                <DeliveryMap
+                  depot={depot}
+                  stops={stops}
+                  route={null}
+                  activeStopId={packageData.status === 'IN_TRANSIT' ? packageData.id : null}
+                  livePosition={livePosition}
+                />
+              </div>
+              <div className="flex items-center justify-between text-sm text-gray-600">
+              <span>{gpsWatching ? 'GPS tracking active' : 'Waiting to start tracking'}</span>
+              {livePosition ? (
+                <span>
+                  {livePosition.lat.toFixed(5)}, {livePosition.lng.toFixed(5)}
+                </span>
+              ) : (
+                <span>No live position yet</span>
+              )}
             </div>
           </CardContent>
         </Card>

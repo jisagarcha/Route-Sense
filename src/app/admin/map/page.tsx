@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,11 @@ import {
   MoreHorizontal,
   X
 } from "lucide-react";
+
+const MapLocationPicker = dynamic(() => import("@/components/MapLocationPicker"), {
+  ssr: false,
+  loading: () => <div className="h-[260px] animate-pulse rounded-md bg-gray-100" />,
+});
 
 interface Location {
   id: number;
@@ -36,9 +42,37 @@ interface Road {
   toLocation?: Location;
 }
 
+interface LiveDriver {
+  id: string;
+  name: string | null;
+  email: string;
+  activePackages: number;
+  latestLocation: { lat: number; lng: number; recordedAt: string } | null;
+}
+
+interface ActiveDelivery {
+  id: string;
+  packageName: string;
+  status: string;
+  deliveryLat: number | null;
+  deliveryLong: number | null;
+  deliveryAddress: string | null;
+}
+
+interface Warehouse {
+  id: string;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+}
+
 export default function MapViewPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [roads, setRoads] = useState<Road[]>([]);
+  const [liveDrivers, setLiveDrivers] = useState<LiveDriver[]>([]);
+  const [activeDeliveries, setActiveDeliveries] = useState<ActiveDelivery[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -76,6 +110,11 @@ export default function MapViewPage() {
   }, []);
 
   useEffect(() => {
+    const interval = window.setInterval(fetchData, 30000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
     console.log("Map data:", {
       locations: locations.length,
       roads: roads.length,
@@ -86,16 +125,27 @@ export default function MapViewPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [locationsRes, roadsRes] = await Promise.all([
+      const [locationsRes, roadsRes, driversRes, packagesRes, warehousesRes] = await Promise.all([
         fetch("/api/locations"),
         fetch("/api/roads"),
+        fetch("/api/drivers"),
+        fetch("/api/packages?limit=100"),
+        fetch("/api/warehouses"),
       ]);
 
       const locationsData = await locationsRes.json();
       const roadsData = await roadsRes.json();
+      const driversData = await driversRes.json();
+      const packagesData = await packagesRes.json();
+      const warehousesData = await warehousesRes.json();
 
       setLocations(locationsData.locations || []);
       setRoads(roadsData.roads || []);
+      setLiveDrivers(driversData.drivers || []);
+      setActiveDeliveries((packagesData.packages || []).filter((pkg: ActiveDelivery) =>
+        ['ASSIGNED', 'COLLECTED_FROM_WAREHOUSE', 'IN_TRANSIT'].includes(pkg.status)
+      ));
+      setWarehouses(warehousesData.warehouses || []);
     } catch (err) {
       setError("Failed to fetch data");
       console.error(err);
@@ -311,6 +361,35 @@ export default function MapViewPage() {
 
   const displayedLocations = showAllLocations ? locations : locations.slice(0, 4);
   const displayedRoads = showAllRoads ? roads : roads.slice(0, 4);
+  const liveDriverPositions = liveDrivers
+    .filter((driver) => driver.latestLocation)
+    .map((driver) => ({
+      id: driver.id,
+      name: driver.name || driver.email,
+      lat: driver.latestLocation!.lat,
+      lng: driver.latestLocation!.lng,
+      recordedAt: driver.latestLocation!.recordedAt,
+    }));
+  const activeDeliveryStops = activeDeliveries
+    .filter((delivery) => Number.isFinite(Number(delivery.deliveryLat)) && Number.isFinite(Number(delivery.deliveryLong)))
+    .map((delivery, index) => ({
+      id: delivery.id,
+      lat: Number(delivery.deliveryLat),
+      lng: Number(delivery.deliveryLong),
+      label: String(index + 1),
+      address: `${delivery.packageName} - ${delivery.deliveryAddress || delivery.status}`,
+      status: delivery.status,
+    }));
+  const combinedLocations = [
+    ...locations,
+    ...warehouses.map((warehouse, index) => ({
+      id: -1000 - index,
+      name: warehouse.name,
+      latitude: warehouse.lat,
+      longitude: warehouse.lng,
+      description: `Warehouse - ${warehouse.address}`,
+    })),
+  ];
 
   return (
     <div className="h-screen overflow-hidden bg-gray-50">
@@ -339,6 +418,26 @@ export default function MapViewPage() {
                 <AlertDescription className="text-green-700">{success}</AlertDescription>
               </Alert>
             )}
+
+            <Card className="border-orange-200 bg-orange-50/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Live Operations</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-3 gap-2 text-center text-sm">
+                <div className="rounded-md bg-white p-2">
+                  <div className="font-bold text-orange-700">{liveDriverPositions.length}</div>
+                  <div className="text-xs text-gray-500">Drivers</div>
+                </div>
+                <div className="rounded-md bg-white p-2">
+                  <div className="font-bold text-red-700">{activeDeliveryStops.length}</div>
+                  <div className="text-xs text-gray-500">Active</div>
+                </div>
+                <div className="rounded-md bg-white p-2">
+                  <div className="font-bold text-blue-700">{warehouses.length}</div>
+                  <div className="text-xs text-gray-500">Warehouses</div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Locations Section */}
          
@@ -448,28 +547,20 @@ export default function MapViewPage() {
                         className="h-8 text-sm"
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Label className="text-xs">Latitude</Label>
-                        <Input
-                          type="number"
-                          step="any"
-                          value={newLocation.latitude}
-                          onChange={(e) => setNewLocation({ ...newLocation, latitude: parseFloat(e.target.value) })}
-                          className="h-8 text-sm"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Longitude</Label>
-                        <Input
-                          type="number"
-                          step="any"
-                          value={newLocation.longitude}
-                          onChange={(e) => setNewLocation({ ...newLocation, longitude: parseFloat(e.target.value) })}
-                          className="h-8 text-sm"
-                        />
-                      </div>
-                    </div>
+                    <MapLocationPicker
+                      label="Location"
+                      initialLat={newLocation.latitude}
+                      initialLng={newLocation.longitude}
+                      height="260px"
+                      onLocationSelect={(lat, lng, address) =>
+                        setNewLocation({
+                          ...newLocation,
+                          latitude: lat,
+                          longitude: lng,
+                          description: newLocation.description || address,
+                        })
+                      }
+                    />
                     <div className="flex gap-2">
                       <Button type="submit" size="sm" className="h-7 text-xs">Add</Button>
                       <Button
@@ -635,12 +726,14 @@ export default function MapViewPage() {
         {/* Full Screen Map with Floating Optimize Section */}
         <div className="relative bg-gray-100">
           {/* Map */}
-          {locations.length > 0 ? (
+          {combinedLocations.length > 0 || activeDeliveryStops.length > 0 || liveDriverPositions.length > 0 ? (
             <div className="absolute inset-0">
               <RouteMap
-                locations={locations}
+                locations={combinedLocations}
                 roads={roads}
                 routePath={optimizedRoute}
+                stops={activeDeliveryStops}
+                driverPositions={liveDriverPositions}
                 center={[27.7172, 85.324]}
                 zoom={13}
                 height="100vh"

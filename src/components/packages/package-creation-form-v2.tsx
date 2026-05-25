@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ProductGrid } from '@/components/products/product-grid';
 import { Plus, Minus, Package as PackageIcon, Loader2, MapPin, Route as RouteIcon } from 'lucide-react';
+
+const MapLocationPicker = dynamic(() => import('@/components/MapLocationPicker'), {
+  ssr: false,
+  loading: () => <div className="h-[320px] animate-pulse rounded-md bg-gray-100" />,
+});
 
 interface Product {
   id: string;
@@ -50,6 +56,7 @@ export function PackageCreationFormV2() {
   const [notes, setNotes] = useState('');
   const [warehouseLat, setWarehouseLat] = useState('27.7172');
   const [warehouseLong, setWarehouseLong] = useState('85.3120');
+  const [warehouseAddress, setWarehouseAddress] = useState('Kathmandu, Nepal');
   
   // Route optimization result
   const [optimizedRoute, setOptimizedRoute] = useState<{
@@ -128,6 +135,18 @@ export function PackageCreationFormV2() {
         }
       }
       return item;
+    }));
+  };
+
+  const setItemLocation = (productId: string, lat: number, lng: number, address: string) => {
+    setSelectedItems((currentItems) => currentItems.map(item => {
+      if (item.productId !== productId) return item;
+      return {
+        ...item,
+        deliveryLat: lat,
+        deliveryLong: lng,
+        deliveryAddress: address,
+      };
     }));
   };
 
@@ -227,6 +246,10 @@ export function PackageCreationFormV2() {
           notes,
           warehouseLat: parseFloat(warehouseLat),
           warehouseLong: parseFloat(warehouseLong),
+          warehouseAddress,
+          deliveryLat: optimizedRoute.orderedItems[0]?.deliveryLat,
+          deliveryLong: optimizedRoute.orderedItems[0]?.deliveryLong,
+          deliveryAddress: optimizedRoute.orderedItems[0]?.deliveryAddress,
           totalDistance: optimizedRoute.totalDistance,
           estimatedDuration: optimizedRoute.estimatedDuration,
           routeAlgorithm: optimizedRoute.algorithm,
@@ -410,22 +433,22 @@ export function PackageCreationFormV2() {
               </div>
 
               <div>
-                <Label>Warehouse/Starting Location</Label>
-                <div className="grid grid-cols-2 gap-2 mt-1">
-                  <Input
-                    type="number"
-                    step="0.0001"
-                    value={warehouseLat}
-                    onChange={(e) => setWarehouseLat(e.target.value)}
-                    placeholder="Latitude"
-                  />
-                  <Input
-                    type="number"
-                    step="0.0001"
-                    value={warehouseLong}
-                    onChange={(e) => setWarehouseLong(e.target.value)}
-                    placeholder="Longitude"
-                  />
+                <MapLocationPicker
+                  label="Warehouse/Starting Location"
+                  initialLat={Number(warehouseLat)}
+                  initialLng={Number(warehouseLong)}
+                  height="320px"
+                  onLocationSelect={(lat, lng, address) => {
+                    setWarehouseLat(String(lat));
+                    setWarehouseLong(String(lng));
+                    setWarehouseAddress(address);
+                  }}
+                />
+                <div className="mt-2 rounded-md bg-gray-50 p-3 text-sm text-gray-700">
+                  <p className="font-medium">{warehouseAddress}</p>
+                  <p className="text-xs text-gray-500">
+                    {Number(warehouseLat).toFixed(5)}, {Number(warehouseLong).toFixed(5)}
+                  </p>
                 </div>
               </div>
             </div>
@@ -451,23 +474,17 @@ export function PackageCreationFormV2() {
                           placeholder="Delivery address..."
                           className="text-sm"
                         />
-                        <div className="grid grid-cols-2 gap-2">
-                          <Input
-                            type="number"
-                            step="0.0001"
-                            value={item.deliveryLat}
-                            onChange={(e) => updateItemLocation(item.productId, 'deliveryLat', e.target.value)}
-                            placeholder="Latitude"
-                            className="text-sm"
-                          />
-                          <Input
-                            type="number"
-                            step="0.0001"
-                            value={item.deliveryLong}
-                            onChange={(e) => updateItemLocation(item.productId, 'deliveryLong', e.target.value)}
-                            placeholder="Longitude"
-                            className="text-sm"
-                          />
+                        <MapLocationPicker
+                          label={`Delivery location for ${item.product.name}`}
+                          initialLat={item.deliveryLat}
+                          initialLng={item.deliveryLong}
+                          height="260px"
+                          onLocationSelect={(lat, lng, address) =>
+                            setItemLocation(item.productId, lat, lng, address)
+                          }
+                        />
+                        <div className="rounded-md bg-white p-2 text-xs text-gray-500">
+                          {item.deliveryLat.toFixed(5)}, {item.deliveryLong.toFixed(5)}
                         </div>
                       </div>
                     </div>

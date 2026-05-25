@@ -21,6 +21,8 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { RouteMap } from '@/components/route-map';
+import { PackageStatusBadge } from '@/components/PackageStatusBadge';
+import { StopStatusTimeline } from '@/components/StopStatusTimeline';
 
 interface Product {
   id: string;
@@ -71,23 +73,6 @@ interface PackageData {
   } | null;
   items: PackageItem[];
 }
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'PENDING':
-      return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-    case 'ASSIGNED':
-      return 'bg-blue-100 text-blue-800 border-blue-300';
-    case 'IN_TRANSIT':
-      return 'bg-purple-100 text-purple-800 border-purple-300';
-    case 'DELIVERED':
-      return 'bg-green-100 text-green-800 border-green-300';
-    case 'CANCELLED':
-      return 'bg-red-100 text-red-800 border-red-300';
-    default:
-      return 'bg-gray-100 text-gray-800 border-gray-300';
-  }
-};
 
 export default function PackageDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -225,9 +210,7 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <h1 className="text-2xl font-bold mb-2">{packageData.packageName}</h1>
-                <Badge className={getStatusColor(packageData.status)}>
-                  {packageData.status}
-                </Badge>
+                <PackageStatusBadge status={packageData.status} />
               </div>
               <PackageIcon className="h-8 w-8 text-gray-400" />
             </div>
@@ -332,6 +315,15 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Status Timeline</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <StopStatusTimeline packageId={packageId} />
+            </CardContent>
+          </Card>
+
           {/* Items List */}
           <Card>
             <CardHeader>
@@ -417,7 +409,7 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
                     Optimize Route
                   </Button>
                 )}
-                {packageData.totalDistance && !packageData.driver && (
+                {!packageData.driver && (
                   <Button
                     onClick={() => router.push(`/packages/${packageId}/assign`)}
                     className="w-full"

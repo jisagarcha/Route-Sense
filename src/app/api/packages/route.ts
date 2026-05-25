@@ -70,6 +70,7 @@ export async function GET(request: NextRequest) {
             },
           },
           delivery: true,
+          route: true,
         },
         orderBy: { createdAt: 'desc' },
         take: limit,
@@ -109,6 +110,16 @@ export async function POST(request: NextRequest) {
       packageName,
       warehouseLat,
       warehouseLong,
+      warehouseAddress,
+      deliveryLat,
+      deliveryLong,
+      deliveryLng,
+      deliveryAddress,
+      recipientName,
+      recipientPhone,
+      priority,
+      timeWindowStart,
+      timeWindowEnd,
       totalDistance,
       estimatedDuration,
       routeAlgorithm,
@@ -164,17 +175,35 @@ export async function POST(request: NextRequest) {
       },
       { totalWeight: 0, totalVolume: 0, isCritical: false }
     );
+    const firstLocatedItem = items.find((item) =>
+      Number.isFinite(Number(item.deliveryLat)) && Number.isFinite(Number(item.deliveryLong))
+    );
+    const primaryDeliveryLng = deliveryLong ?? deliveryLng ?? firstLocatedItem?.deliveryLong;
+    const parsedTimeWindowStart = parseNullableDate(timeWindowStart);
+    const parsedTimeWindowEnd = parseNullableDate(timeWindowEnd);
 
     // Create package with items (Multi-Stop)
     const packageData = await prisma.package.create({
       data: {
         packageName,
         dispatcherId: session.user.id,
+        recipientName: recipientName || null,
+        recipientPhone: recipientPhone || null,
+        priority: priority === 'HIGH' || priority === 'LOW' ? priority : 'NORMAL',
+        timeWindowStart: parsedTimeWindowStart,
+        timeWindowEnd: parsedTimeWindowEnd,
         totalWeight: totals.totalWeight,
         totalVolume: totals.totalVolume,
         isCritical: totals.isCritical,
         warehouseLat,
         warehouseLong,
+        warehouseAddress: warehouseAddress || null,
+        deliveryLat: Number.isFinite(Number(deliveryLat ?? firstLocatedItem?.deliveryLat))
+          ? Number(deliveryLat ?? firstLocatedItem?.deliveryLat)
+          : null,
+        deliveryLong: Number.isFinite(Number(primaryDeliveryLng)) ? Number(primaryDeliveryLng) : null,
+        deliveryLng: Number.isFinite(Number(primaryDeliveryLng)) ? Number(primaryDeliveryLng) : null,
+        deliveryAddress: deliveryAddress || firstLocatedItem?.deliveryAddress || null,
         totalDistance,
         estimatedDuration,
         routeAlgorithm,
@@ -213,4 +242,10 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function parseNullableDate(value: unknown) {
+  if (!value || typeof value !== 'string') return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 }

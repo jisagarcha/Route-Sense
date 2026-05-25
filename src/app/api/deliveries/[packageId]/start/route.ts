@@ -30,16 +30,19 @@ export async function POST(
       return NextResponse.json({ error: 'This package is not assigned to you' }, { status: 403 });
     }
 
-    // Verify package is in ASSIGNED status
-    if (pkg.status !== 'ASSIGNED') {
-      return NextResponse.json({ error: 'Package is not in ASSIGNED status' }, { status: 400 });
+    // Verify package is ready to start
+    if (pkg.status !== 'ASSIGNED' && pkg.status !== 'COLLECTED_FROM_WAREHOUSE') {
+      return NextResponse.json({ error: 'Package is not ready to start' }, { status: 400 });
     }
 
     const startedAt = new Date();
     const [updatedPackage, delivery] = await prisma.$transaction([
       prisma.package.update({
         where: { id: packageId },
-        data: { status: 'IN_TRANSIT' },
+        data: {
+          status: 'IN_TRANSIT',
+          collectedAt: pkg.collectedAt || startedAt,
+        },
         include: {
           delivery: true,
           items: { include: { product: true } },

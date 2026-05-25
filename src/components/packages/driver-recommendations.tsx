@@ -32,8 +32,10 @@ interface DriverRecommendationsProps {
     totalWeight: number;
     totalVolume: number;
     isCritical: boolean;
-    deliveryLat: number;
-    deliveryLong: number;
+    deliveryLat: number | null;
+    deliveryLong: number | null;
+    warehouseLat?: number | null;
+    warehouseLong?: number | null;
   };
 }
 
@@ -59,7 +61,9 @@ export function DriverRecommendations({ packageId, packageData }: DriverRecommen
           volume: packageData.totalVolume,
           isCritical: packageData.isCritical,
           deliveryLat: packageData.deliveryLat,
-          deliveryLong: packageData.deliveryLong
+          deliveryLong: packageData.deliveryLong,
+          warehouseLat: packageData.warehouseLat,
+          warehouseLong: packageData.warehouseLong
         })
       });
 

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Package as PackageIcon, MapPin, User, Calendar, Loader2, Plus, Trash2 } from 'lucide-react';
+import { PackageStatusBadge } from '@/components/PackageStatusBadge';
 
 interface Package {
   id: string;
@@ -132,22 +133,6 @@ export default function PackagesPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const colors: Record<string, string> = {
-      PENDING: 'bg-yellow-100 text-yellow-800',
-      ASSIGNED: 'bg-blue-100 text-blue-800',
-      IN_TRANSIT: 'bg-purple-100 text-purple-800',
-      DELIVERED: 'bg-green-100 text-green-800',
-      CANCELLED: 'bg-red-100 text-red-800'
-    };
-
-    return (
-      <Badge className={colors[status] || 'bg-gray-100 text-gray-800'}>
-        {status.replace('_', ' ')}
-      </Badge>
-    );
-  };
-
   if (loading) {
     return (
       <div className="container mx-auto py-8 px-4">
@@ -201,8 +186,10 @@ export default function PackagesPage() {
                   <option value="ALL">All Status</option>
                   <option value="PENDING">Pending</option>
                   <option value="ASSIGNED">Assigned</option>
+                  <option value="COLLECTED_FROM_WAREHOUSE">Collected from Warehouse</option>
                   <option value="IN_TRANSIT">In Transit</option>
                   <option value="DELIVERED">Delivered</option>
+                  <option value="FAILED">Failed</option>
                   <option value="CANCELLED">Cancelled</option>
                 </select>
               </div>
@@ -239,7 +226,7 @@ export default function PackagesPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-xl font-semibold">{pkg.packageName}</h3>
-                        {getStatusBadge(pkg.status)}
+                        <PackageStatusBadge status={pkg.status} />
                         {pkg.isCritical && (
                           <Badge variant="destructive">Critical</Badge>
                         )}

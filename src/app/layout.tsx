@@ -1,11 +1,17 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Navigation } from "@/components/navigation";
 import { Providers } from "@/components/providers";
+import { PwaRegister } from "@/components/pwa-register";
 
 export const metadata: Metadata = {
-  title: "Delivery Route & Cost Optimizer",
-  description: "Find the best delivery routes using advanced algorithms",
+  title: "RouteSense",
+  description: "Delivery route optimization with live navigation",
+  manifest: "/manifest.json",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2563EB",
 };
 
 export default function RootLayout({
@@ -20,6 +26,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <Providers>
+          <PwaRegister />
           <Navigation />
           {children}
         </Providers>

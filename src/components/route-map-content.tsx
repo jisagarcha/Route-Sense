@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from "react-leaflet";
+import { CircleMarker, MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from "react-leaflet";
 import { useLeafletSetup, startIcon, endIcon, waypointIcon, defaultIcon } from "@/lib/map-utils";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
@@ -31,6 +31,30 @@ const createNumberedIcon = (number: number) => {
   });
 };
 
+const createRouteStopIcon = (label: string, active = false, completed = false) => {
+  const size = active ? 34 : 28;
+  const color = completed ? "#16a34a" : active ? "#f97316" : "#dc2626";
+  return L.divIcon({
+    className: "routesense-route-stop-icon",
+    html: `<div style="
+      width:${size}px;
+      height:${size}px;
+      border-radius:9999px;
+      background:${color};
+      color:white;
+      border:3px solid white;
+      box-shadow:0 8px 20px rgba(15,23,42,.28);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:800;
+      font-size:12px;
+    ">${label}</div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+};
+
 interface Location {
   id: number;
   name: string;
@@ -51,6 +75,19 @@ interface RouteMapProps {
   locations: Location[];
   roads?: Road[];
   routePath?: number[]; // Array of location IDs
+  stops?: Array<{
+    id: string;
+    lat: number;
+    lng: number;
+    label?: string;
+    address?: string;
+    status?: string;
+  }>;
+  polyline?: Array<[number, number]>;
+  driverPosition?: { lat: number; lng: number } | null;
+  driverPositions?: Array<{ id: string; name: string; lat: number; lng: number; recordedAt?: string }>;
+  highlightedStopId?: string | null;
+  onStopClick?: (stopId: string) => void;
   center?: [number, number];
   zoom?: number;
   height?: string;
@@ -103,6 +140,12 @@ export default function RouteMapContent({
   locations,
   roads = [],
   routePath = [],
+  stops = [],
+  polyline = [],
+  driverPosition = null,
+  driverPositions = [],
+  highlightedStopId = null,
+  onStopClick,
   center = [27.7172, 85.324], // Kathmandu
   zoom = 13,
   height = "600px",
@@ -121,6 +164,26 @@ export default function RouteMapContent({
     [locations]
   );
   const routePathSet = useMemo(() => new Set(routePath), [routePath]);
+  const boundsLocations = useMemo<Location[]>(() => {
+    if (locations.length > 0) return locations;
+    return [
+      ...stops.map((stop, index) => ({
+        id: index,
+        name: stop.label || `Stop ${index + 1}`,
+        latitude: stop.lat,
+        longitude: stop.lng,
+      })),
+      ...(driverPosition
+        ? [{ id: -1, name: "Driver", latitude: driverPosition.lat, longitude: driverPosition.lng }]
+        : []),
+      ...driverPositions.map((driver, index) => ({
+        id: -100 - index,
+        name: driver.name,
+        latitude: driver.lat,
+        longitude: driver.lng,
+      })),
+    ];
+  }, [driverPosition, driverPositions, locations, stops]);
 
   // Get location coordinates by ID
   const getLocationCoords = (id: number): [number, number] | null => {
@@ -205,6 +268,10 @@ export default function RouteMapContent({
     />
   ) : null;
 
+  const enginePolyline = polyline.length > 1 ? (
+    <Polyline positions={polyline} color="#f97316" weight={5} opacity={0.88} />
+  ) : null;
+
   // Create numbered markers for route segments
   const routeNumberMarkers = routePath.length > 1 ? routePath.slice(0, -1).map((id, index) => {
     const fromCoords = getLocationCoords(id);
@@ -285,8 +352,30 @@ export default function RouteMapContent({
     );
   });
 
+  const stopMarkers = stops.map((stop, index) => {
+    const active = highlightedStopId === stop.id;
+    const completed = stop.status === "DELIVERED" || stop.status === "COMPLETED";
+
+    return (
+      <Marker
+        key={stop.id}
+        position={[stop.lat, stop.lng]}
+        icon={createRouteStopIcon(stop.label || String(index + 1), active, completed)}
+        eventHandlers={{ click: () => onStopClick?.(stop.id) }}
+      >
+        <Popup>
+          <div className="max-w-[220px] text-sm">
+            <p className="font-semibold">{stop.label || `Stop ${index + 1}`}</p>
+            {stop.address && <p className="text-gray-600">{stop.address}</p>}
+            {stop.status && <p className="mt-1 text-xs text-gray-500">{stop.status.replaceAll("_", " ")}</p>}
+          </div>
+        </Popup>
+      </Marker>
+    );
+  });
+
   return (
-    <div className="relative">
+    <div className="relative h-full w-full">
       {editable && (
         <Card className="absolute top-4 right-4 z-[1000] p-4 bg-white shadow-lg">
           <div className="space-y-2">
@@ -336,7 +425,7 @@ export default function RouteMapContent({
       <MapContainer
         center={center}
         zoom={zoom}
-        style={{ height, width: "100%", borderRadius: "0.5rem" }}
+        style={{ height, width: "100%", borderRadius: "0.5rem", backgroundColor: "#f8fafc" }}
         className="z-0"
       >
         <TileLayer
@@ -350,12 +439,49 @@ export default function RouteMapContent({
           isAddingLocation={isAddingLocation}
         />
         
-        <MapBoundsHandler locations={locations} />
+        <MapBoundsHandler locations={boundsLocations} />
         
         {roadLines}
         {routePolyline}
+        {enginePolyline}
         {routeNumberMarkers}
         {locationMarkers}
+        {stopMarkers}
+        {driverPosition && (
+          <CircleMarker
+            center={[driverPosition.lat, driverPosition.lng]}
+            radius={9}
+            pathOptions={{ color: "#ffffff", fillColor: "#2563eb", fillOpacity: 1, weight: 3 }}
+          >
+            <Popup>
+              <div className="text-sm">
+                <p className="font-semibold">Driver position</p>
+                <p className="text-gray-600">
+                  {driverPosition.lat.toFixed(5)}, {driverPosition.lng.toFixed(5)}
+                </p>
+              </div>
+            </Popup>
+          </CircleMarker>
+        )}
+        {driverPositions.map((driver) => (
+          <CircleMarker
+            key={driver.id}
+            center={[driver.lat, driver.lng]}
+            radius={10}
+            pathOptions={{ color: "#ffffff", fillColor: "#f97316", fillOpacity: 1, weight: 3 }}
+          >
+            <Popup>
+              <div className="text-sm">
+                <p className="font-semibold">{driver.name}</p>
+                {driver.recordedAt && (
+                  <p className="text-gray-600">
+                    Updated {new Date(driver.recordedAt).toLocaleTimeString()}
+                  </p>
+                )}
+              </div>
+            </Popup>
+          </CircleMarker>
+        ))}
       </MapContainer>
     </div>
   );

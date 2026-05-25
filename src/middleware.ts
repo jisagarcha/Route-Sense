@@ -9,6 +9,22 @@ export default withAuth(
     const role = token?.role;
 
     if (
+      path.startsWith("/dispatcher") &&
+      role !== "ADMIN" &&
+      role !== "DISPATCHER"
+    ) {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+
+    if (
+      (path.startsWith("/driver") || path.startsWith("/delivery")) &&
+      role !== "ADMIN" &&
+      role !== "DRIVER"
+    ) {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+
+    if (
       (path.startsWith("/admin/patterns") || path.startsWith("/admin/history")) &&
       role !== "ADMIN" &&
       role !== "ANALYST"
@@ -31,10 +47,27 @@ export default withAuth(
     callbacks: {
       authorized: ({ token, req }) => {
         // Public paths that don't require authentication
-        const publicPaths = ["/", "/results", "/auth/signin", "/auth/signup", "/auth/error"];
+        const publicPaths = [
+          "/",
+          "/results",
+          "/auth/signin",
+          "/auth/signup",
+          "/auth/register",
+          "/auth/error",
+          "/manifest.json",
+          "/sw.js",
+        ];
         const path = req.nextUrl.pathname;
         
         if (publicPaths.includes(path)) {
+          return true;
+        }
+
+        if (
+          (req.method === "POST" && path === "/api/geocode") ||
+          (req.method === "POST" && path === "/api/route") ||
+          (req.method === "POST" && path === "/api/delivery/optimize")
+        ) {
           return true;
         }
 

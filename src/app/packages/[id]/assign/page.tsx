@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { DriverRecommendations } from '@/components/packages/driver-recommendations';
-import { Loader2 } from 'lucide-react';
+import { AlertTriangle, Edit, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface PackageData {
   id: string;
@@ -14,6 +15,10 @@ interface PackageData {
   isCritical: boolean;
   deliveryLat: number | null;
   deliveryLong: number | null;
+  routeId?: string | null;
+  totalDistance?: number | null;
+  warehouseLat?: number | null;
+  warehouseLong?: number | null;
 }
 
 export default function AssignDriverPage() {
@@ -67,32 +72,43 @@ export default function AssignDriverPage() {
     );
   }
 
-  // Check if package has delivery coordinates set
-  if (packageData.deliveryLat === null || packageData.deliveryLong === null) {
-    return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="text-center py-12">
-          <p className="text-red-600 mb-4">
-            This package needs route optimization before driver assignment.
-          </p>
-          <p className="text-gray-600 mb-6">
-            Please complete the route optimization step to set delivery locations.
-          </p>
-          <Button onClick={() => router.push(`/packages/${packageId}/optimize`)}>
-            Go to Route Optimization
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const hasOptimizedRoute = Boolean(packageData.routeId || packageData.totalDistance);
+  const hasDeliveryCoordinates = packageData.deliveryLat !== null && packageData.deliveryLong !== null;
 
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Assign Driver</h1>
-          <p className="text-gray-600">Package: {packageData.packageName}</p>
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Assign Driver</h1>
+            <p className="text-gray-600">Package: {packageData.packageName}</p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/packages/${packageId}/edit`)}
+          >
+            <Edit className="mr-2 h-4 w-4" />
+            Re-edit details
+          </Button>
         </div>
+
+        {!hasOptimizedRoute && (
+          <Alert className="mb-6 border-amber-200 bg-amber-50">
+            <AlertTriangle className="h-4 w-4 text-amber-700" />
+            <AlertDescription className="text-amber-900">
+              No route optimized yet. A best-effort route will be auto-calculated at dispatch time using the delivery address.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {!hasDeliveryCoordinates && (
+          <Alert className="mb-6 border-amber-200 bg-amber-50">
+            <AlertTriangle className="h-4 w-4 text-amber-700" />
+            <AlertDescription className="text-amber-900">
+              Delivery coordinates are missing. Driver assignment is still available, but route calculation may need package details to be updated.
+            </AlertDescription>
+          </Alert>
+        )}
         
         <DriverRecommendations
           packageId={packageId}
@@ -101,7 +117,9 @@ export default function AssignDriverPage() {
             totalVolume: packageData.totalVolume,
             isCritical: packageData.isCritical,
             deliveryLat: packageData.deliveryLat,
-            deliveryLong: packageData.deliveryLong
+            deliveryLong: packageData.deliveryLong,
+            warehouseLat: packageData.warehouseLat ?? null,
+            warehouseLong: packageData.warehouseLong ?? null,
           }}
         />
       </div>

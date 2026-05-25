@@ -19,9 +19,7 @@ export async function POST(request: NextRequest) {
     if (
       weight === undefined ||
       volume === undefined ||
-      isCritical === undefined ||
-      !Number.isFinite(Number(deliveryLat)) ||
-      !Number.isFinite(Number(deliveryLong))
+      isCritical === undefined
     ) {
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -32,7 +30,10 @@ export async function POST(request: NextRequest) {
     // Calculate estimated distance
     const startLat = Number.isFinite(Number(warehouseLat)) ? Number(warehouseLat) : 27.7172;
     const startLong = Number.isFinite(Number(warehouseLong)) ? Number(warehouseLong) : 85.3120;
-    const distance = calculateDistance(startLat, startLong, Number(deliveryLat), Number(deliveryLong));
+    const hasDeliveryCoordinates = Number.isFinite(Number(deliveryLat)) && Number.isFinite(Number(deliveryLong));
+    const distance = hasDeliveryCoordinates
+      ? calculateDistance(startLat, startLong, Number(deliveryLat), Number(deliveryLong))
+      : 5;
 
     // Fetch all available drivers with profiles
     const drivers = await prisma.user.findMany({
@@ -98,6 +99,7 @@ export async function POST(request: NextRequest) {
         volume,
         isCritical,
         estimatedDistance: Math.round(distance * 100) / 100,
+        warning: hasDeliveryCoordinates ? null : 'Delivery coordinates missing; using default 5 km estimate.',
       },
     });
   } catch (error) {

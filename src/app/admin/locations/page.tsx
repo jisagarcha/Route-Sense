@@ -1,12 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+
+const MapLocationPicker = dynamic(() => import('@/components/MapLocationPicker'), {
+  ssr: false,
+  loading: () => <div className="h-[360px] animate-pulse rounded-md bg-gray-100" />,
+});
 
 interface Location {
   id: number;
@@ -196,28 +202,26 @@ export default function LocationsPage() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="latitude">Latitude</Label>
-                  <Input
-                    id="latitude"
-                    type="number"
-                    step="any"
-                    value={formData.latitude}
-                    onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
-                    placeholder="e.g., 27.7172"
+                <div className="md:col-span-2">
+                  <MapLocationPicker
+                    label="Location on map"
+                    initialLat={formData.latitude ? Number(formData.latitude) : undefined}
+                    initialLng={formData.longitude ? Number(formData.longitude) : undefined}
+                    height="360px"
+                    onLocationSelect={(lat, lng, address) =>
+                      setFormData({
+                        ...formData,
+                        latitude: String(lat),
+                        longitude: String(lng),
+                        description: formData.description || address,
+                      })
+                    }
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="longitude">Longitude</Label>
-                  <Input
-                    id="longitude"
-                    type="number"
-                    step="any"
-                    value={formData.longitude}
-                    onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
-                    placeholder="e.g., 85.3240"
-                  />
+                  {(formData.latitude && formData.longitude) && (
+                    <p className="mt-2 text-xs text-gray-500">
+                      Selected: {Number(formData.latitude).toFixed(5)}, {Number(formData.longitude).toFixed(5)}
+                    </p>
+                  )}
                 </div>
               </div>
 

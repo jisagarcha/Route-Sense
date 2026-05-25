@@ -10,7 +10,7 @@ async function seedDemoUsers() {
     const adminEmail = 'admin@admin.com';
     const adminPassword = 'anihortes';
     const hashedAdminPassword = await bcrypt.hash(adminPassword, 10);
-    
+
     await prisma.user.upsert({
       where: { email: adminEmail },
       update: {
@@ -31,7 +31,7 @@ async function seedDemoUsers() {
     const dispatcherEmail = 'dispatcher@gmail.com';
     const dispatcherPassword = 'dispatcher';
     const hashedDispatcherPassword = await bcrypt.hash(dispatcherPassword, 10);
-    
+
     await prisma.user.upsert({
       where: { email: dispatcherEmail },
       update: {
@@ -52,7 +52,7 @@ async function seedDemoUsers() {
     const driverEmail = 'rajesh.driver@delivery.com';
     const driverPassword = 'driverdai';
     const hashedDriverPassword = await bcrypt.hash(driverPassword, 10);
-    
+
     const driverUser = await prisma.user.upsert({
       where: { email: driverEmail },
       update: {

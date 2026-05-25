@@ -43,7 +43,11 @@ export async function POST(
     const [updatedPackage, delivery] = await prisma.$transaction([
       prisma.package.update({
         where: { id: packageId },
-        data: { status: 'DELIVERED' },
+        data: {
+          status: 'DELIVERED',
+          deliveredAt: completedAt,
+          failureReason: null,
+        },
         include: {
           delivery: true,
           items: { include: { product: true } },

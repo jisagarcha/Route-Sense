@@ -40,6 +40,8 @@ model User {
   routeRequests       RouteRequest[]
   dispatcherPackages  Package[]         @relation("DispatcherPackages")
   driverPackages      Package[]         @relation("DriverPackages")
+  optimizedRoutes     Route[]           @relation("RouteDriver")
+  driverLocations     DriverLocation[]
   driverProfile       DriverProfile?
 
   @@map("users")
@@ -337,8 +339,10 @@ model Telemetry {
 enum PackageStatus {
   PENDING
   ASSIGNED
+  COLLECTED_FROM_WAREHOUSE
   IN_TRANSIT
   DELIVERED
+  FAILED
   CANCELLED
 }
 
@@ -347,6 +351,18 @@ enum DeliveryStatus {
   IN_PROGRESS
   COMPLETED
   FAILED
+}
+
+enum PackagePriority {
+  HIGH
+  NORMAL
+  LOW
+}
+
+enum RouteStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
 }
 
 // Product Catalog
@@ -377,31 +393,97 @@ model Package {
   dispatcherId      String
   driverId          String?
   status            PackageStatus   @default(PENDING)
+  recipientName     String?
+  recipientPhone    String?
+  priority          PackagePriority @default(NORMAL)
+  timeWindowStart   DateTime?
+  timeWindowEnd     DateTime?
   totalWeight       Float           // in kg
   totalVolume       Float           // in cubic feet
   isCritical        Boolean         @default(false)
   warehouseLat      Float?          // Starting warehouse location
   warehouseLong     Float?          // Starting warehouse location
+  warehouseAddress  String?         // Human-readable warehouse/start address
   deliveryLat       Float?          // Primary delivery location (first stop)
   deliveryLong      Float?          // Primary delivery location (first stop)
+  deliveryLng       Float?          // Alias used by newer route engine APIs
   deliveryAddress   String?         // Primary delivery address
   notes             String?
   totalDistance     Float?          // Total optimized route distance in km
   estimatedDuration Int?            // Estimated time in minutes
   routeAlgorithm    String?         // "dijkstra", "bellman-ford", "bfs", "astar"
+  collectedAt       DateTime?
+  deliveredAt       DateTime?
+  failureReason     String?
+  routeId           String?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   
   dispatcher      User            @relation("DispatcherPackages", fields: [dispatcherId], references: [id], onDelete: Restrict)
   driver          User?           @relation("DriverPackages", fields: [driverId], references: [id], onDelete: SetNull)
+  route           Route?          @relation(fields: [routeId], references: [id], onDelete: SetNull)
   items           PackageItem[]
   delivery        Delivery?
 
   @@map("packages")
   @@index([dispatcherId])
   @@index([driverId])
+  @@index([routeId])
   @@index([status])
   @@index([createdAt])
+}
+
+model Route {
+  id                String      @id @default(cuid())
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  warehouseId       String
+  warehouse         Warehouse   @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  driverId          String?
+  driver            User?       @relation("RouteDriver", fields: [driverId], references: [id], onDelete: SetNull)
+
+  orderedStopIds    String[]
+  totalDistanceKm   Float?
+  totalDurationMin  Int?
+  polylineJson      String?
+  estimatedArrivals Json?
+
+  isAutoCalculated  Boolean     @default(false)
+  optimizedAt       DateTime?
+  packages          Package[]
+  status            RouteStatus @default(PENDING)
+
+  @@map("routes")
+  @@index([warehouseId])
+  @@index([driverId])
+  @@index([status])
+  @@index([optimizedAt])
+}
+
+model Warehouse {
+  id        String   @id @default(cuid())
+  name      String
+  address   String
+  lat       Float
+  lng       Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  routes    Route[]
+
+  @@map("warehouses")
+}
+
+model DriverLocation {
+  id         String   @id @default(cuid())
+  driverId   String
+  driver     User     @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  lat        Float
+  lng        Float
+  recordedAt DateTime @default(now())
+
+  @@map("driver_locations")
+  @@index([driverId, recordedAt])
 }
 
 // Package Items (from product catalog)

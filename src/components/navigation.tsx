@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
-import { Home, History, BarChart3, LogOut, User, Map, Navigation as NavigationIcon, Database, Package as PackageIcon, Truck, type LucideIcon } from 'lucide-react';
+import { Home, History, BarChart3, LogOut, User, Map, Navigation as NavigationIcon, Database, Package as PackageIcon, Truck, Building2, Route as RouteIcon, type LucideIcon } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 
 interface NavItem {
@@ -21,6 +21,8 @@ const getNavItems = (role?: string) => {
   const roleItems: Record<string, NavItem[]> = {
     ADMIN: [
       { href: '/admin/map', label: 'Map', icon: Map },
+      { href: '/admin/warehouses', label: 'Warehouses', icon: Building2 },
+      { href: '/admin/routes', label: 'Routes', icon: RouteIcon },
       { href: '/admin/optimize', label: 'Optimize', icon: NavigationIcon },
       { href: '/admin/data', label: 'Data', icon: Database },
       // { href: '/admin/locations', label: 'Locations', icon: MapPin },
@@ -31,9 +33,10 @@ const getNavItems = (role?: string) => {
     ],
     DISPATCHER: [
       { href: '/packages', label: 'Packages', icon: PackageIcon },
+      { href: '/dispatcher/routes/new', label: 'Routes', icon: RouteIcon },
     ],
     DRIVER: [
-      { href: '/delivery', label: 'My Deliveries', icon: Truck },
+      { href: '/driver', label: 'Driver', icon: Truck },
     ],
     ANALYST: [
       { href: '/admin/patterns', label: 'Patterns', icon: BarChart3 },
