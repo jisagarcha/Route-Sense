@@ -103,7 +103,18 @@ export default function PackagesPage() {
   }, [statusFilter]);
 
   useEffect(() => {
-    fetchPackages(page);
+    const refresh = () => {
+      void fetchPackages(page);
+    };
+
+    refresh();
+    const intervalId = window.setInterval(refresh, 15000);
+    window.addEventListener('focus', refresh);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refresh);
+    };
   }, [fetchPackages, page]);
 
   const handleDeletePackage = async (id: string) => {

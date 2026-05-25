@@ -6,6 +6,9 @@ import { authOptions } from '@/lib/auth';
 interface IncomingPackageItem {
   productId: string;
   quantity: number;
+  recipientName?: string;
+  recipientPhone?: string;
+  collectedAt?: string;
   deliveryLat?: number;
   deliveryLong?: number;
   deliveryAddress?: string;
@@ -212,6 +215,9 @@ export async function POST(request: NextRequest) {
           create: items.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
+            recipientName: item.recipientName || null,
+            recipientPhone: item.recipientPhone || null,
+            collectedAt: parseNullableDate(item.collectedAt),
             deliveryLat: item.deliveryLat || null,
             deliveryLong: item.deliveryLong || null,
             deliveryAddress: item.deliveryAddress || null,
@@ -237,8 +243,14 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error creating package:', error);
+    const message = error instanceof Error ? error.message : 'Failed to create package';
     return NextResponse.json(
-      { error: 'Failed to create package' },
+      {
+        error: message,
+        details: error instanceof Error
+          ? { name: error.name, message: error.message }
+          : null,
+      },
       { status: 500 }
     );
   }

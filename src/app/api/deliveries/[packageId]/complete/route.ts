@@ -18,7 +18,10 @@ export async function POST(
 
     const pkg = await prisma.package.findUnique({
       where: { id: packageId },
-      include: { delivery: true }
+      include: {
+        delivery: true,
+        items: true,
+      }
     });
 
     if (!pkg) {
@@ -35,6 +38,15 @@ export async function POST(
       return NextResponse.json({ error: 'Package is not in IN_TRANSIT status' }, { status: 400 });
     }
 
+    if (pkg.items.length > 1 && pkg.items.some((item) => item.deliveryStatus !== 'DELIVERED' && item.deliveryStatus !== 'FAILED')) {
+      return NextResponse.json(
+        { error: 'Complete the individual delivery stops before closing a multi-stop package' },
+        { status: 400 }
+      );
+    }
+
+    const hasFailedStops = pkg.items.some((item) => item.deliveryStatus === 'FAILED');
+
     const completedAt = new Date();
     const actualTime = pkg.delivery?.startedAt
       ? Math.max(0, Math.round((completedAt.getTime() - pkg.delivery.startedAt.getTime()) / 60000))
@@ -44,9 +56,9 @@ export async function POST(
       prisma.package.update({
         where: { id: packageId },
         data: {
-          status: 'DELIVERED',
+          status: hasFailedStops ? 'FAILED' : 'DELIVERED',
           deliveredAt: completedAt,
-          failureReason: null,
+          failureReason: hasFailedStops ? 'One or more delivery stops failed.' : null,
         },
         include: {
           delivery: true,
@@ -56,13 +68,13 @@ export async function POST(
       prisma.delivery.upsert({
         where: { packageId },
         update: {
-          status: 'COMPLETED',
+          status: hasFailedStops ? 'FAILED' : 'COMPLETED',
           completedAt,
           actualTime,
         },
         create: {
           packageId,
-          status: 'COMPLETED',
+          status: hasFailedStops ? 'FAILED' : 'COMPLETED',
           completedAt,
           actualTime,
         },

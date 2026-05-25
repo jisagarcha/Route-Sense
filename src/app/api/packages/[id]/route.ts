@@ -6,6 +6,8 @@ import { optimizeRoute, type Stop } from '@/lib/routeEngine';
 
 interface PackageItemForRouting {
   id: string;
+  recipientName: string | null;
+  recipientPhone: string | null;
   deliveryLat: number | null;
   deliveryLong: number | null;
   deliveryAddress: string | null;
@@ -175,7 +177,9 @@ export async function PATCH(
           }
 
           const updateItemData: Record<string, unknown> = {};
-          
+
+          if (item.recipientName !== undefined) updateItemData.recipientName = item.recipientName || null;
+          if (item.recipientPhone !== undefined) updateItemData.recipientPhone = item.recipientPhone || null;
           if (item.deliveryLat !== undefined) updateItemData.deliveryLat = item.deliveryLat;
           if (item.deliveryLong !== undefined) updateItemData.deliveryLong = item.deliveryLong;
           if (item.deliveryAddress !== undefined) updateItemData.deliveryAddress = item.deliveryAddress;

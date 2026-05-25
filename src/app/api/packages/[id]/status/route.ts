@@ -33,7 +33,10 @@ export async function PATCH(
 
     const pkg = await prisma.package.findUnique({
       where: { id: packageId },
-      include: { delivery: true },
+      include: {
+        delivery: true,
+        items: true,
+      },
     });
 
     if (!pkg) {
@@ -52,6 +55,20 @@ export async function PATCH(
 
     if (session.user.role === 'DRIVER' && !['COLLECTED_FROM_WAREHOUSE', 'IN_TRANSIT', 'DELIVERED', 'FAILED'].includes(status)) {
       return NextResponse.json({ error: 'Drivers cannot set this status' }, { status: 403 });
+    }
+
+    if (status === 'DELIVERED' && pkg.items.length > 1 && pkg.items.some((item) => item.deliveryStatus !== 'DELIVERED' && item.deliveryStatus !== 'FAILED')) {
+      return NextResponse.json(
+        { error: 'Resolve every delivery stop before marking the package delivered' },
+        { status: 400 }
+      );
+    }
+
+    if (status === 'DELIVERED' && pkg.items.some((item) => item.deliveryStatus === 'FAILED')) {
+      return NextResponse.json(
+        { error: 'This package has failed delivery stops; mark it as failed instead' },
+        { status: 400 }
+      );
     }
 
     const timestamp = parseTimestamp(body.timestamp);
@@ -82,6 +99,18 @@ export async function PATCH(
           items: { include: { product: true }, orderBy: { sequence: 'asc' } },
         },
       }),
+      ...(status === 'IN_TRANSIT'
+        ? [
+            prisma.packageItem.updateMany({
+              where: { packageId },
+              data: {
+                deliveryStatus: 'COLLECTED_FROM_WAREHOUSE',
+                collectedAt: timestamp,
+                failureReason: null,
+              },
+            }),
+          ]
+        : []),
       prisma.delivery.upsert({
         where: { packageId },
         update: buildDeliveryUpdate(status, timestamp),

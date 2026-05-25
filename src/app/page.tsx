@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DeliveryPlanner } from "@/components/delivery-planner/delivery-planner";
+import { RouteMap } from "@/components/route-map";
 
 const stats = [
   { value: 12000, suffix: "+", label: "Deliveries Optimized" },
@@ -74,6 +74,43 @@ const roleTabs = {
     points: ["Warehouses", "Routes", "System history"],
   },
 } as const;
+
+const demoStops = [
+  {
+    id: "demo-warehouse",
+    lat: 27.7178,
+    lng: 85.3242,
+    label: "1",
+    address: "Warehouse pickup",
+    status: "IN_TRANSIT",
+  },
+  {
+    id: "demo-stop-1",
+    lat: 27.7224,
+    lng: 85.3321,
+    label: "2",
+    address: "Customer stop 1",
+    status: "PENDING",
+  },
+  {
+    id: "demo-stop-2",
+    lat: 27.7281,
+    lng: 85.3404,
+    label: "3",
+    address: "Customer stop 2",
+    status: "PENDING",
+  },
+  {
+    id: "demo-stop-3",
+    lat: 27.7342,
+    lng: 85.3461,
+    label: "4",
+    address: "Customer stop 3",
+    status: "PENDING",
+  },
+];
+
+const demoPolyline = demoStops.map((stop) => [stop.lat, stop.lng] as [number, number]);
 
 export default function Home() {
   const [activeRole, setActiveRole] = useState<keyof typeof roleTabs>("Dispatcher");
@@ -309,10 +346,53 @@ export default function Home() {
           <SectionHeading
             eyebrow="Interactive demo"
             title="Plan a live delivery route"
-            text="Use the embedded planner to test stop entry, optimization, live GPS, and route completion in one place."
+            text="Use the route preview to inspect stop order, live map state, and the driver handoff without taking over the whole page."
           />
-          <div className="mt-10 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-            <DeliveryPlanner />
+          <div className="mt-10 grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.55fr)]">
+            <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Route preview</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-950">Warehouse to stop chain</p>
+                </div>
+                <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
+                  4 stops
+                </span>
+              </div>
+              <div className="h-[520px]">
+                <RouteMap
+                  locations={[]}
+                  stops={demoStops}
+                  polyline={demoPolyline}
+                  center={[27.7172, 85.324]}
+                  zoom={13}
+                  height="100%"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-rose-700">Dispatcher view</p>
+                <h3 className="mt-2 text-xl font-semibold text-slate-950">One route, one control point</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-600">
+                  The preview stays compact on the page while still showing the warehouse, ordered stops, and route line.
+                </p>
+              </div>
+              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="space-y-3">
+                  <PreviewRow label="Pickup" value="Warehouse confirmed" />
+                  <PreviewRow label="Stop order" value="3 customer deliveries" />
+                  <PreviewRow label="Driver state" value="Ready to start" />
+                </div>
+              </div>
+              <div className="rounded-3xl border border-slate-200 bg-rose-50 p-5">
+                <p className="text-sm font-semibold uppercase tracking-wide text-rose-700">Color system</p>
+                <p className="mt-2 text-sm leading-6 text-slate-700">
+                  White surfaces, slate text, and rose accents keep the page aligned with the logo without turning the interface heavy.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -451,6 +531,15 @@ function RoleCard({ title, subtitle }: { title: string; subtitle: string }) {
           Ready for work
         </div>
       </div>
+    </div>
+  );
+}
+
+function PreviewRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
+      <span className="text-sm font-medium text-slate-600">{label}</span>
+      <span className="text-sm font-semibold text-slate-950">{value}</span>
     </div>
   );
 }

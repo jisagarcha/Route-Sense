@@ -21,6 +21,40 @@ interface DriverPackage {
   timeWindowEnd?: string | null;
   routeId?: string | null;
   route?: { id: string; totalDurationMin: number | null } | null;
+  items?: Array<{
+    id: string;
+    recipientName: string | null;
+    recipientPhone: string | null;
+    deliveryLat: number | null;
+    deliveryLong: number | null;
+    sequence: number | null;
+  }>;
+}
+
+function hasOptimizedRoute(pkg: DriverPackage) {
+  return Boolean(
+    pkg.routeId ||
+    pkg.route ||
+    pkg.items?.some(
+      (item) =>
+        item.sequence !== null &&
+        Number.isFinite(Number(item.deliveryLat)) &&
+        Number.isFinite(Number(item.deliveryLong))
+    )
+  );
+}
+
+function getCustomerSummary(pkg: DriverPackage) {
+  const recipients = new Set(
+    pkg.items
+      ?.map((item) => item.recipientName)
+      .filter((value): value is string => Boolean(value && value.trim())) || []
+  );
+
+  if (recipients.size === 1) return Array.from(recipients)[0];
+  if (recipients.size > 1) return `${recipients.size} customers`;
+  if ((pkg.items?.length || 0) > 1) return `${pkg.items?.length || 0} delivery stops`;
+  return pkg.recipientName || pkg.packageName;
 }
 
 export default function DriverHomePage() {
@@ -35,7 +69,7 @@ export default function DriverHomePage() {
   }, []);
 
   useEffect(() => {
-    const needsRoute = packages.filter((pkg) => !pkg.routeId && !pkg.route && ['ASSIGNED', 'COLLECTED_FROM_WAREHOUSE', 'IN_TRANSIT'].includes(pkg.status));
+    const needsRoute = packages.filter((pkg) => !hasOptimizedRoute(pkg) && ['ASSIGNED', 'COLLECTED_FROM_WAREHOUSE', 'IN_TRANSIT'].includes(pkg.status));
     if (needsRoute.length === 0 || typeof navigator === "undefined" || !navigator.geolocation) return;
 
     navigator.geolocation.getCurrentPosition(
@@ -144,7 +178,7 @@ export default function DriverHomePage() {
                     {index + 1}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold">{pkg.recipientName || pkg.packageName}</span>
+                    <span className="block truncate font-semibold">{getCustomerSummary(pkg)}</span>
                     <span className="block truncate text-sm text-gray-500">{pkg.deliveryAddress || "Address pending"}</span>
                   </span>
                   <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${expanded ? "rotate-180" : ""}`} />
@@ -153,13 +187,26 @@ export default function DriverHomePage() {
                   <CardContent className="space-y-3 border-t bg-gray-50 p-4 text-sm">
                     <PackageStatusBadge status={pkg.status} />
                     {pkg.recipientPhone && <p>Phone: {pkg.recipientPhone}</p>}
+                    {pkg.items?.some((item) => item.recipientName) && (
+                      <div className="space-y-1">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Customers</p>
+                        {pkg.items
+                          .filter((item) => item.recipientName)
+                          .map((item) => (
+                            <p key={item.id} className="text-xs text-gray-600">
+                              {item.recipientName}
+                              {item.recipientPhone ? ` • ${item.recipientPhone}` : ''}
+                            </p>
+                          ))}
+                      </div>
+                    )}
                     {pkg.notes && <p>Notes: {pkg.notes}</p>}
                     {(pkg.timeWindowStart || pkg.timeWindowEnd) && (
                       <p>Window: {formatWindow(pkg.timeWindowStart)} - {formatWindow(pkg.timeWindowEnd)}</p>
                     )}
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="outline">{pkg.totalWeight} kg</Badge>
-                      <Badge variant="outline">{pkg.routeId || pkg.route ? "Route ready" : "Auto-route pending"}</Badge>
+                      <Badge variant="outline">{hasOptimizedRoute(pkg) ? "Route ready" : "Auto-route pending"}</Badge>
                     </div>
                   </CardContent>
                 )}

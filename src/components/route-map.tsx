@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react";
 export const RouteMap = dynamic(() => import("./route-map-content"), {
   ssr: false,
   loading: () => (
-    <div className="flex items-center justify-center bg-gray-100 rounded-lg" style={{ height: "600px" }}>
+    <div className="flex h-full min-h-[320px] items-center justify-center rounded-lg bg-gray-100" style={{ width: "100%" }}>
       <div className="text-center">
         <Loader2 className="animate-spin h-12 w-12 text-primary mx-auto mb-4" />
         <p className="text-gray-600">Loading map...</p>

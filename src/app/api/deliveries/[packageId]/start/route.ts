@@ -48,6 +48,14 @@ export async function POST(
           items: { include: { product: true } },
         },
       }),
+      prisma.packageItem.updateMany({
+        where: { packageId },
+        data: {
+          deliveryStatus: 'COLLECTED_FROM_WAREHOUSE',
+          collectedAt: startedAt,
+          failureReason: null,
+        },
+      }),
       prisma.delivery.upsert({
         where: { packageId },
         update: {

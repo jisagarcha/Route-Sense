@@ -35,6 +35,8 @@ interface PackageItem {
   productId: string;
   product: Product;
   quantity: number;
+  recipientName: string;
+  recipientPhone: string;
   deliveryLat: number;
   deliveryLong: number;
   deliveryAddress: string;
@@ -104,6 +106,8 @@ export function PackageCreationFormV2() {
         productId: product.id,
         product,
         quantity: 1,
+        recipientName: '',
+        recipientPhone: '',
         deliveryLat: product.deliveryLat ?? 27.7172,
         deliveryLong: product.deliveryLong ?? 85.3120,
         deliveryAddress: `Location for ${product.name}`
@@ -135,6 +139,13 @@ export function PackageCreationFormV2() {
         }
       }
       return item;
+    }));
+  };
+
+  const updateItemRecipient = (productId: string, field: 'recipientName' | 'recipientPhone', value: string) => {
+    setSelectedItems((currentItems) => currentItems.map(item => {
+      if (item.productId !== productId) return item;
+      return { ...item, [field]: value };
     }));
   };
 
@@ -256,6 +267,8 @@ export function PackageCreationFormV2() {
           items: optimizedRoute.orderedItems.map((item, index) => ({
             productId: item.productId,
             quantity: item.quantity,
+            recipientName: item.recipientName,
+            recipientPhone: item.recipientPhone,
             deliveryLat: item.deliveryLat,
             deliveryLong: item.deliveryLong,
             deliveryAddress: item.deliveryAddress,
@@ -468,6 +481,20 @@ export function PackageCreationFormV2() {
                       </div>
                       <div className="flex-1 space-y-2">
                         <p className="font-medium">{item.product.name}</p>
+                        <div className="grid gap-2 md:grid-cols-2">
+                          <Input
+                            value={item.recipientName}
+                            onChange={(e) => updateItemRecipient(item.productId, 'recipientName', e.target.value)}
+                            placeholder="Customer name"
+                            className="text-sm"
+                          />
+                          <Input
+                            value={item.recipientPhone}
+                            onChange={(e) => updateItemRecipient(item.productId, 'recipientPhone', e.target.value)}
+                            placeholder="Customer phone"
+                            className="text-sm"
+                          />
+                        </div>
                         <Input
                           value={item.deliveryAddress}
                           onChange={(e) => updateItemLocation(item.productId, 'deliveryAddress', e.target.value)}

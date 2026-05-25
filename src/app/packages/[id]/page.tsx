@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,10 +36,16 @@ interface PackageItem {
   id: string;
   productId: string;
   quantity: number;
+  recipientName: string | null;
+  recipientPhone: string | null;
   deliveryLat: number | null;
   deliveryLong: number | null;
   deliveryAddress: string | null;
   sequence: number | null;
+  deliveryStatus: string;
+  collectedAt: string | null;
+  deliveredAt: string | null;
+  failureReason: string | null;
   product: Product;
 }
 
@@ -82,19 +88,11 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    params.then(({ id }) => {
-      setPackageId(id);
-      fetchPackageData(id);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const fetchPackageData = async (id: string) => {
+  const fetchPackageData = useCallback(async (id: string, options?: { silent?: boolean }) => {
     try {
       const res = await fetch(`/api/packages/${id}`);
       const data = await res.json();
-      
+
       if (res.ok && data.package) {
         setPackageData(data.package);
       } else {
@@ -104,9 +102,39 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
       console.error('Error fetching package:', err);
       setError('Failed to fetch package');
     } finally {
-      setLoading(false);
+      if (!options?.silent) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    params.then(({ id }) => {
+      if (!mounted) return;
+      setPackageId(id);
+      void fetchPackageData(id);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [fetchPackageData, params]);
+
+  useEffect(() => {
+    if (!packageId) return;
+
+    const refresh = () => {
+      void fetchPackageData(packageId, { silent: true });
+    };
+
+    const intervalId = window.setInterval(refresh, 15000);
+    window.addEventListener('focus', refresh);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refresh);
+    };
+  }, [fetchPackageData, packageId]);
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this package? This action cannot be undone.')) {
@@ -175,6 +203,7 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
   const sortedItems = [...packageData.items].sort((a, b) => 
     (a.sequence ?? 999) - (b.sequence ?? 999)
   );
+  const recipients = sortedItems.filter((item) => item.recipientName || item.recipientPhone);
 
   sortedItems.forEach((item, index) => {
     if (item.deliveryLat !== null && item.deliveryLong !== null) {
@@ -315,6 +344,27 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
             </CardContent>
           </Card>
 
+          {recipients.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Customers</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {recipients.map((item) => (
+                  <div key={item.id} className="rounded-md border border-gray-200 bg-gray-50 p-3">
+                    <p className="font-semibold">{item.recipientName || item.product.name}</p>
+                    <p className="text-xs text-gray-600">
+                      {item.recipientPhone || 'Phone pending'}
+                    </p>
+                    {item.deliveryAddress && (
+                      <p className="mt-1 text-xs text-gray-500">{item.deliveryAddress}</p>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">Status Timeline</CardTitle>
@@ -337,21 +387,45 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
                         {item.sequence !== null && (
                           <Badge variant="outline" className="text-xs">
                             #{item.sequence}
                           </Badge>
                         )}
                         <span className="font-semibold text-sm">{item.product.name}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {formatDeliveryStatus(item.deliveryStatus)}
+                        </Badge>
                       </div>
                       <p className="text-xs text-gray-600">
                         Quantity: {item.quantity} • {item.product.weight * item.quantity} kg
                       </p>
+                      {item.recipientName && (
+                        <p className="text-xs text-gray-600 mt-1">
+                          Customer: {item.recipientName}
+                          {item.recipientPhone ? ` • ${item.recipientPhone}` : ''}
+                        </p>
+                      )}
+                      {item.collectedAt && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Collected {new Date(item.collectedAt).toLocaleString()}
+                        </p>
+                      )}
                       {item.deliveryAddress && (
                         <p className="text-xs text-gray-500 mt-1 flex items-start">
                           <MapPin className="h-3 w-3 mr-1 mt-0.5" />
                           {item.deliveryAddress}
+                        </p>
+                      )}
+                      {item.deliveredAt && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Delivered {new Date(item.deliveredAt).toLocaleString()}
+                        </p>
+                      )}
+                      {item.failureReason && (
+                        <p className="text-xs text-red-600 mt-1">
+                          Failed: {item.failureReason}
                         </p>
                       )}
                     </div>
@@ -490,4 +564,8 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
       </div>
     </div>
   );
+}
+
+function formatDeliveryStatus(value?: string | null) {
+  return (value || "PENDING").replaceAll("_", " ");
 }

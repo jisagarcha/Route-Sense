@@ -492,10 +492,16 @@ model PackageItem {
   packageId       String
   productId       String
   quantity        Int      @default(1)
+  recipientName   String?
+  recipientPhone  String?
+  collectedAt     DateTime?
   deliveryLat     Float?   // Delivery location for this item (optional until route optimization)
   deliveryLong    Float?   // Delivery location for this item (optional until route optimization)
   deliveryAddress String?  // Address for this delivery stop
   sequence        Int?     // Order in optimized route (1 = first stop, 2 = second, etc.)
+  deliveryStatus  String   @default("PENDING")
+  deliveredAt     DateTime?
+  failureReason   String?
   
   package     Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
   product     Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
