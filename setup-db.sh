@@ -10,7 +10,11 @@ echo "Step 2: Pushing schema to database..."
 npx prisma db push
 
 echo ""
-echo "Step 3: Seeding database with sample data..."
+echo "Step 3: Seeding demo login users..."
+node seed-demo-users.js
+
+echo ""
+echo "Step 4: Seeding database with sample data..."
 npx prisma db seed
 
 echo ""

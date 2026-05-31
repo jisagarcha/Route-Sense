@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PackageStatusBadge } from "@/components/PackageStatusBadge";
+import { RouteMap } from "@/components/route-map";
 
 interface DriverPackage {
   id: string;
@@ -28,6 +29,31 @@ interface DriverPackage {
     deliveryLat: number | null;
     deliveryLong: number | null;
     sequence: number | null;
+  }>;
+}
+
+interface DriverHistoryRoute {
+  id: string;
+  packageName: string;
+  status: string;
+  warehouseAddress: string | null;
+  warehouseLat: number | null;
+  warehouseLong: number | null;
+  deliveryAddress: string | null;
+  stopCount: number;
+  totalDistanceKm: number | null;
+  actualDurationMin: number | null;
+  estimatedDurationMin: number | null;
+  completedAt: string | null;
+  failureReason: string | null;
+  stops: Array<{
+    id: string;
+    address: string;
+    lat: number | null;
+    lng: number | null;
+    recipientName: string | null;
+    status: string;
+    productName: string | null;
   }>;
 }
 
@@ -59,13 +85,17 @@ function getCustomerSummary(pkg: DriverPackage) {
 
 export default function DriverHomePage() {
   const [packages, setPackages] = useState<DriverPackage[]>([]);
+  const [historyRoutes, setHistoryRoutes] = useState<DriverHistoryRoute[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+  const [historyPolyline, setHistoryPolyline] = useState<Array<[number, number]>>([]);
   const [loading, setLoading] = useState(true);
   const [routingCount, setRoutingCount] = useState(0);
   const [error, setError] = useState("");
 
   useEffect(() => {
     void fetchPackages();
+    void fetchHistory();
   }, []);
 
   useEffect(() => {
@@ -102,6 +132,23 @@ export default function DriverHomePage() {
     }
   };
 
+  const fetchHistory = async () => {
+    try {
+      const response = await fetch("/api/route-history?limit=20");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to fetch route history");
+      const routes = (data.driverRoutes || []) as DriverHistoryRoute[];
+      setHistoryRoutes(routes);
+      setSelectedHistoryId((current) =>
+        current && routes.some((route) => route.id === current)
+          ? current
+          : routes[0]?.id || null
+      );
+    } catch (historyError) {
+      console.error("Failed to load driver history:", historyError);
+    }
+  };
+
   const autoRoute = async (packageId: string, lat: number, lng: number) => {
     setRoutingCount((count) => count + 1);
     try {
@@ -121,6 +168,47 @@ export default function DriverHomePage() {
     const completion = new Date(Date.now() + minutes * 60000);
     return completion.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   }, [packages]);
+  const selectedHistory = historyRoutes.find((route) => route.id === selectedHistoryId) || null;
+  const historyStops = useMemo(() => selectedHistory ? buildHistoryMapStops(selectedHistory) : [], [selectedHistory]);
+  const historyPoints = useMemo(() => selectedHistory ? buildHistoryRoutePoints(selectedHistory) : [], [selectedHistory]);
+  const historyMapPolyline =
+    historyPolyline.length > 1
+      ? historyPolyline
+      : historyPoints.map((point) => [point.lat, point.lng] as [number, number]);
+  const historyMapCenter: [number, number] =
+    historyStops[0]
+      ? [historyStops[0].lat, historyStops[0].lng]
+      : historyMapPolyline[0] || [27.7172, 85.3120];
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadHistoryRoute() {
+      setHistoryPolyline([]);
+      if (historyPoints.length < 2) return;
+
+      try {
+        const response = await fetch("/api/route", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ points: historyPoints }),
+        });
+        const data = await response.json();
+        const coordinates = data.route?.coordinates;
+        if (!cancelled && Array.isArray(coordinates) && coordinates.length > 1) {
+          setHistoryPolyline(coordinates);
+        }
+      } catch (routeError) {
+        console.error("Failed to load history route geometry:", routeError);
+      }
+    }
+
+    void loadHistoryRoute();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedHistoryId, historyPoints]);
 
   if (loading) {
     return (
@@ -228,6 +316,78 @@ export default function DriverHomePage() {
             </Card>
           )}
         </section>
+
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-lg font-bold">Route history</h2>
+            <p className="text-sm text-gray-500">Completed and failed package routes assigned to you.</p>
+          </div>
+
+          {selectedHistory && (
+            <Card className="overflow-hidden">
+              <CardHeader>
+                <CardTitle className="text-base">{selectedHistory.packageName}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <Badge variant="outline">{selectedHistory.status.replaceAll("_", " ")}</Badge>
+                  <Badge variant="outline">{selectedHistory.stopCount} stops</Badge>
+                  {selectedHistory.totalDistanceKm !== null && (
+                    <Badge variant="outline">{selectedHistory.totalDistanceKm.toFixed(2)} km</Badge>
+                  )}
+                  {(selectedHistory.actualDurationMin ?? selectedHistory.estimatedDurationMin) && (
+                    <Badge variant="outline">{selectedHistory.actualDurationMin ?? selectedHistory.estimatedDurationMin} min</Badge>
+                  )}
+                </div>
+                <div className="h-[320px] overflow-hidden rounded-md border bg-white">
+                  <RouteMap
+                    key={selectedHistory.id}
+                    locations={[]}
+                    stops={historyStops}
+                    polyline={historyMapPolyline}
+                    center={historyMapCenter}
+                    zoom={13}
+                    height="100%"
+                  />
+                </div>
+                <div className="space-y-2 text-sm">
+                  <p className="font-medium">{selectedHistory.warehouseAddress || "Warehouse"} to {selectedHistory.deliveryAddress || selectedHistory.stops[0]?.address || "Delivery address"}</p>
+                  {selectedHistory.completedAt && (
+                    <p className="text-gray-500">Completed {new Date(selectedHistory.completedAt).toLocaleString()}</p>
+                  )}
+                  {selectedHistory.failureReason && (
+                    <p className="text-red-600">{selectedHistory.failureReason}</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="space-y-2">
+            {historyRoutes.map((route) => (
+              <button
+                key={route.id}
+                type="button"
+                className={`w-full rounded-md border p-3 text-left text-sm ${
+                  selectedHistoryId === route.id ? "border-orange-400 bg-orange-50" : "border-gray-200 bg-white"
+                }`}
+                onClick={() => setSelectedHistoryId(route.id)}
+              >
+                <span className="block font-semibold">{route.packageName}</span>
+                <span className="block text-xs text-gray-500">
+                  {route.status.replaceAll("_", " ")} - {route.stopCount} stops
+                </span>
+              </button>
+            ))}
+            {historyRoutes.length === 0 && (
+              <Card>
+                <CardContent className="p-4 text-sm text-gray-500">
+                  No route history yet.
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </section>
       </div>
     </main>
   );
@@ -236,4 +396,52 @@ export default function DriverHomePage() {
 function formatWindow(value?: string | null) {
   if (!value) return "--";
   return new Date(value).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function buildHistoryMapStops(route: DriverHistoryRoute) {
+  const stops: Array<{ id: string; lat: number; lng: number; label: string; address: string; status: string }> = [];
+
+  if (Number.isFinite(Number(route.warehouseLat)) && Number.isFinite(Number(route.warehouseLong))) {
+    stops.push({
+      id: `${route.id}:warehouse`,
+      lat: Number(route.warehouseLat),
+      lng: Number(route.warehouseLong),
+      label: "Start",
+      address: route.warehouseAddress || "Warehouse",
+      status: "WAREHOUSE",
+    });
+  }
+
+  route.stops.forEach((stop) => {
+    if (!Number.isFinite(Number(stop.lat)) || !Number.isFinite(Number(stop.lng))) return;
+    stops.push({
+      id: stop.id,
+      lat: Number(stop.lat),
+      lng: Number(stop.lng),
+      label: String(stops.length + 1),
+      address: stop.address,
+      status: stop.status,
+    });
+  });
+
+  return stops;
+}
+
+function buildHistoryRoutePoints(route: DriverHistoryRoute) {
+  const points: Array<{ lat: number; lng: number }> = [];
+
+  if (Number.isFinite(Number(route.warehouseLat)) && Number.isFinite(Number(route.warehouseLong))) {
+    points.push({ lat: Number(route.warehouseLat), lng: Number(route.warehouseLong) });
+  }
+
+  route.stops.forEach((stop) => {
+    if (!Number.isFinite(Number(stop.lat)) || !Number.isFinite(Number(stop.lng))) return;
+    const point = { lat: Number(stop.lat), lng: Number(stop.lng) };
+    const previous = points[points.length - 1];
+    if (!previous || previous.lat !== point.lat || previous.lng !== point.lng) {
+      points.push(point);
+    }
+  });
+
+  return points;
 }

@@ -123,6 +123,8 @@ function MapBoundsHandler({ locations }: { locations: Location[] }) {
   const map = useMap();
 
   useEffect(() => {
+    setTimeout(() => map.invalidateSize(), 0);
+
     if (locations.length > 0) {
       const bounds = locations.map((loc) => [loc.latitude, loc.longitude] as [number, number]);
       if (bounds.length === 1) {
@@ -173,6 +175,12 @@ export default function RouteMapContent({
         latitude: stop.lat,
         longitude: stop.lng,
       })),
+      ...polyline.map((point, index) => ({
+        id: -1000 - index,
+        name: `Route point ${index + 1}`,
+        latitude: point[0],
+        longitude: point[1],
+      })),
       ...(driverPosition
         ? [{ id: -1, name: "Driver", latitude: driverPosition.lat, longitude: driverPosition.lng }]
         : []),
@@ -183,7 +191,7 @@ export default function RouteMapContent({
         longitude: driver.lng,
       })),
     ];
-  }, [driverPosition, driverPositions, locations, stops]);
+  }, [driverPosition, driverPositions, locations, polyline, stops]);
 
   // Get location coordinates by ID
   const getLocationCoords = (id: number): [number, number] | null => {
@@ -269,7 +277,7 @@ export default function RouteMapContent({
   ) : null;
 
   const enginePolyline = polyline.length > 1 ? (
-    <Polyline positions={polyline} color="#f97316" weight={5} opacity={0.88} />
+    <Polyline positions={polyline} color="#2563eb" weight={7} opacity={0.9} />
   ) : null;
 
   // Create numbered markers for route segments

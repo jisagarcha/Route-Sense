@@ -23,6 +23,7 @@ Open `http://localhost:3000`.
 Demo users are seeded on container startup:
 
 - Admin: `admin@admin.com` / `anihortes`
+- Analyst: `analyst@routesense.com` / `analyst`
 - Dispatcher: `dispatcher@gmail.com` / `dispatcher`
 - Driver: `rajesh.driver@delivery.com` / `driverdai`
 

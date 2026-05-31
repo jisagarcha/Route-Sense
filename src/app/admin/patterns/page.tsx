@@ -30,7 +30,7 @@ interface PatternsResult {
 
 export default function PatternsPage() {
   const [minSupport, setMinSupport] = useState('0.3');
-  const [minItemsetSize, setMinItemsetSize] = useState('2');
+  const [minItemsetSize, setMinItemsetSize] = useState('1');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PatternsResult | null>(null);
   const [error, setError] = useState('');
@@ -109,7 +109,7 @@ export default function PatternsPage() {
                 placeholder="e.g., 2"
               />
               <p className="text-xs text-muted-foreground">
-                Minimum number of locations in a pattern (2 = pairs, 3 = triplets, etc.)
+                Minimum number of locations in a pattern (1 = frequent zones, 2 = route pairs)
               </p>
             </div>
           </div>

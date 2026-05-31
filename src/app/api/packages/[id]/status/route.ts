@@ -57,20 +57,6 @@ export async function PATCH(
       return NextResponse.json({ error: 'Drivers cannot set this status' }, { status: 403 });
     }
 
-    if (status === 'DELIVERED' && pkg.items.length > 1 && pkg.items.some((item) => item.deliveryStatus !== 'DELIVERED' && item.deliveryStatus !== 'FAILED')) {
-      return NextResponse.json(
-        { error: 'Resolve every delivery stop before marking the package delivered' },
-        { status: 400 }
-      );
-    }
-
-    if (status === 'DELIVERED' && pkg.items.some((item) => item.deliveryStatus === 'FAILED')) {
-      return NextResponse.json(
-        { error: 'This package has failed delivery stops; mark it as failed instead' },
-        { status: 400 }
-      );
-    }
-
     const timestamp = parseTimestamp(body.timestamp);
     const data: Record<string, unknown> = { status };
 
@@ -87,7 +73,7 @@ export async function PATCH(
       data.failureReason = typeof body.failureReason === 'string' ? body.failureReason : 'Unspecified';
     }
 
-    const [updatedPackage, delivery] = await prisma.$transaction([
+    const transactionResults = await prisma.$transaction([
       prisma.package.update({
         where: { id: packageId },
         data,
@@ -99,6 +85,23 @@ export async function PATCH(
           items: { include: { product: true }, orderBy: { sequence: 'asc' } },
         },
       }),
+      ...(status === 'DELIVERED' || status === 'FAILED'
+        ? [
+            prisma.packageItem.updateMany({
+              where: { packageId },
+              data: {
+                deliveryStatus: status,
+                deliveredAt: timestamp,
+                failureReason:
+                  status === 'FAILED'
+                    ? typeof body.failureReason === 'string' && body.failureReason.trim()
+                      ? body.failureReason.trim()
+                      : 'Unspecified'
+                    : null,
+              },
+            }),
+          ]
+        : []),
       ...(status === 'IN_TRANSIT'
         ? [
             prisma.packageItem.updateMany({
@@ -120,10 +123,22 @@ export async function PATCH(
         },
       }),
     ]);
+    const updatedPackage = transactionResults[0];
+    const delivery = transactionResults[transactionResults.length - 1];
+    const refreshedPackage = await prisma.package.findUnique({
+      where: { id: packageId },
+      include: {
+        dispatcher: { select: { id: true, name: true, email: true } },
+        driver: { select: { id: true, name: true, email: true } },
+        route: true,
+        delivery: true,
+        items: { include: { product: true }, orderBy: { sequence: 'asc' } },
+      },
+    });
 
     return NextResponse.json({
       message: 'Package status updated successfully',
-      package: updatedPackage,
+      package: refreshedPackage || updatedPackage,
       delivery,
     });
   } catch (error) {

@@ -44,7 +44,11 @@ export default function SignInPage() {
     signIn("google", { callbackUrl: "/" });
   };
 
-  const handleDemoLogin = async (demoEmail: string, demoPassword: string) => {
+  const handleDemoLogin = async (
+    demoEmail: string,
+    demoPassword: string,
+    callbackUrl: string
+  ) => {
     setError("");
     setLoading(true);
 
@@ -58,7 +62,7 @@ export default function SignInPage() {
       if (result?.error) {
         setError("Demo login failed. Please check credentials.");
       } else {
-        router.push("/");
+        router.push(callbackUrl);
         router.refresh();
       }
     } catch {
@@ -89,7 +93,45 @@ export default function SignInPage() {
               type="button"
               variant="outline"
               size="lg"
-              onClick={() => handleDemoLogin("dispatcher@gmail.com", "dispatcher")}
+              onClick={() =>
+                handleDemoLogin(
+                  "admin@admin.com",
+                  "anihortes",
+                  "/admin/map"
+                )
+              }
+              disabled={loading}
+              className="h-12 justify-start border-slate-200 bg-white text-slate-900 hover:border-rose-300 hover:bg-rose-50"
+            >
+              Admin demo
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={() =>
+                handleDemoLogin(
+                  "analyst@routesense.com",
+                  "analyst",
+                  "/admin/history"
+                )
+              }
+              disabled={loading}
+              className="h-12 justify-start border-slate-200 bg-white text-slate-900 hover:border-rose-300 hover:bg-rose-50"
+            >
+              Analyst demo
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={() =>
+                handleDemoLogin(
+                  "dispatcher@gmail.com",
+                  "dispatcher",
+                  "/dispatcher/routes/new"
+                )
+              }
               disabled={loading}
               className="h-12 justify-start border-slate-200 bg-white text-slate-900 hover:border-rose-300 hover:bg-rose-50"
             >
@@ -99,7 +141,13 @@ export default function SignInPage() {
               type="button"
               variant="outline"
               size="lg"
-              onClick={() => handleDemoLogin("rajesh.driver@delivery.com", "driverdai")}
+              onClick={() =>
+                handleDemoLogin(
+                  "rajesh.driver@delivery.com",
+                  "driverdai",
+                  "/driver"
+                )
+              }
               disabled={loading}
               className="h-12 justify-start border-slate-200 bg-white text-slate-900 hover:border-rose-300 hover:bg-rose-50"
             >

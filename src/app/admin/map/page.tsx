@@ -96,7 +96,7 @@ export default function MapViewPage() {
   });
 
   // Route optimization
-  const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>("");
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>("nearest-neighbor");
   const [startingPoint, setStartingPoint] = useState<string>("");
   const [optimizedRoute, setOptimizedRoute] = useState<number[]>([]);
   const [optimizedRouteDetails, setOptimizedRouteDetails] = useState<{
@@ -439,6 +439,62 @@ export default function MapViewPage() {
               </CardContent>
             </Card>
 
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Navigation className="h-4 w-4 text-blue-600" />
+                  Route Optimizer
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Starting Point</Label>
+                  <select
+                    value={startingPoint}
+                    onChange={(event) => setStartingPoint(event.target.value)}
+                    className="h-9 w-full min-w-0 rounded-md border border-input bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">Select start</option>
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.id.toString()}>
+                        {formatDropdownLabel(loc.name)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Algorithm</Label>
+                  <select
+                    value={selectedAlgorithm}
+                    onChange={(event) => setSelectedAlgorithm(event.target.value)}
+                    className="h-9 w-full min-w-0 rounded-md border border-input bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="nearest-neighbor">Nearest Neighbor</option>
+                    <option value="2-opt">2-Opt Improvement</option>
+                    <option value="simulated-annealing">Simulated Annealing</option>
+                    <option value="genetic">Genetic Algorithm</option>
+                  </select>
+                </div>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-9 w-full"
+                  disabled={!startingPoint || loading}
+                  onClick={() => handleOptimizeRoute(selectedAlgorithm)}
+                >
+                  Optimize Route
+                </Button>
+
+                {optimizedRoute.length > 0 && (
+                  <div className="rounded-md border border-blue-200 bg-blue-50 p-2 text-xs text-blue-800">
+                    {optimizedRoute.length} locations optimized with {formatAlgorithmName(selectedAlgorithm)}.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Locations Section */}
          
 
@@ -473,13 +529,13 @@ export default function MapViewPage() {
                     <Label className="text-xs font-semibold mb-2 block text-blue-900">
                       Route Sequence
                     </Label>
-                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                       {optimizedRouteDetails.segments.map((segment, index) => (
                         <div
                           key={index}
                           className="p-2 bg-white rounded border border-blue-200 hover:border-blue-400 transition-colors"
                         >
-                          <div className="flex items-start gap-2">
+                          <div className="flex min-w-0 items-start gap-2">
                             <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
                               {index + 1}
                             </div>
@@ -488,8 +544,8 @@ export default function MapViewPage() {
                                 {segment.from}
                               </div>
                               <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
-                                <span>→</span>
-                                <span className="truncate">{segment.to}</span>
+                                <span className="shrink-0">→</span>
+                                <span className="min-w-0 truncate">{segment.to}</span>
                               </div>
                               <div className="text-xs text-blue-600 font-medium mt-1">
                                 {segment.distance} km
@@ -508,7 +564,7 @@ export default function MapViewPage() {
                     onClick={() => {
                       setOptimizedRoute([]);
                       setOptimizedRouteDetails(null);
-                      setSelectedAlgorithm("");
+                      setSelectedAlgorithm("nearest-neighbor");
                     }}
                     className="w-full text-xs"
                   >
@@ -631,39 +687,33 @@ export default function MapViewPage() {
                   <form onSubmit={handleAddRoad} className="space-y-3 p-3 bg-gray-50 rounded-lg border">
                     <div>
                       <Label className="text-xs">From</Label>
-                      <Select
+                      <select
                         value={newRoad.fromLocationId}
-                        onValueChange={(value) => setNewRoad({ ...newRoad, fromLocationId: value })}
+                        onChange={(event) => setNewRoad({ ...newRoad, fromLocationId: event.target.value })}
+                        className="h-8 w-full min-w-0 rounded-md border border-input bg-white px-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                       >
-                        <SelectTrigger className="h-8 text-sm">
-                          <SelectValue placeholder="Select location" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {locations.map((loc) => (
-                            <SelectItem key={loc.id} value={loc.id.toString()}>
-                              {loc.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <option value="">Select location</option>
+                        {locations.map((loc) => (
+                          <option key={loc.id} value={loc.id.toString()}>
+                            {formatDropdownLabel(loc.name)}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <Label className="text-xs">To</Label>
-                      <Select
+                      <select
                         value={newRoad.toLocationId}
-                        onValueChange={(value) => setNewRoad({ ...newRoad, toLocationId: value })}
+                        onChange={(event) => setNewRoad({ ...newRoad, toLocationId: event.target.value })}
+                        className="h-8 w-full min-w-0 rounded-md border border-input bg-white px-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                       >
-                        <SelectTrigger className="h-8 text-sm">
-                          <SelectValue placeholder="Select location" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {locations.map((loc) => (
-                            <SelectItem key={loc.id} value={loc.id.toString()}>
-                              {loc.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <option value="">Select location</option>
+                        {locations.map((loc) => (
+                          <option key={loc.id} value={loc.id.toString()}>
+                            {formatDropdownLabel(loc.name)}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div className="flex gap-2">
                       <Button type="submit" size="sm" className="h-7 text-xs">Add</Button>
@@ -689,8 +739,10 @@ export default function MapViewPage() {
                         key={road.id}
                         className="p-2 bg-gray-50 rounded border border-gray-200"
                       >
-                        <div className="text-xs font-semibold">
-                          {from?.name} → {to?.name}
+                        <div className="flex min-w-0 items-center gap-1 text-xs font-semibold">
+                          <span className="min-w-0 truncate">{formatDropdownLabel(from?.name || 'Unknown')}</span>
+                          <span className="shrink-0">→</span>
+                          <span className="min-w-0 truncate">{formatDropdownLabel(to?.name || 'Unknown')}</span>
                         </div>
                         <div className="text-xs text-gray-600">
                           {road.distance} km {road.isBidirectional && '(↔)'}
@@ -723,7 +775,7 @@ export default function MapViewPage() {
           </div>
         </div>
 
-        {/* Full Screen Map with Floating Optimize Section */}
+        {/* Full Screen Map */}
         <div className="relative bg-gray-100">
           {/* Map */}
           {combinedLocations.length > 0 || activeDeliveryStops.length > 0 || liveDriverPositions.length > 0 ? (
@@ -748,137 +800,24 @@ export default function MapViewPage() {
               </div>
             </div>
           )}
-
-          {/* Floating Optimize Route Panel - Top Right */}
-          <div className="absolute top-4 right-4 z-[1000] max-w-2xl">
-            <Card className="shadow-xl border-2 border-gray-300 bg-white/95 backdrop-blur-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Navigation className="h-4 w-4 text-blue-600" />
-                  Optimize Route
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {/* Starting Point Selector */}
-                  <div>
-                    <Label className="text-xs font-semibold mb-1 block">Starting Point</Label>
-                    <Select
-                      value={startingPoint}
-                      onValueChange={setStartingPoint}
-                    >
-                      <SelectTrigger className="h-8 text-sm bg-white">
-                        <SelectValue placeholder="Select starting location" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {/* Selected Starting Point */}
-                        {startingPoint && (
-                          <>
-                            <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 bg-white">
-                              Selected Starting Point
-                            </div>
-                            <SelectItem 
-                              key={startingPoint} 
-                              value={startingPoint}
-                              className="bg-white border-l-4 border-l-blue-500"
-                            >
-                              <div className="flex items-center gap-2 bg-white">
-                                <MapPin className="h-3 w-3 text-blue-600" />
-                                <span className="font-semibold">
-                                  {locations.find(l => l.id.toString() === startingPoint)?.name}
-                                </span>
-                              </div>
-                            </SelectItem>
-                            <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 bg-gray-100 mt-1">
-                              Other Locations
-                            </div>
-                          </>
-                        )}
-                        
-                        {/* Other Locations */}
-                        {locations
-                          .filter(loc => loc.id.toString() !== startingPoint)
-                          .map((loc) => (
-                            <SelectItem key={loc.id} value={loc.id.toString()}>
-                              <div className="flex items-center gap-2">
-                                <MapPin className="h-3 w-3 text-gray-400" />
-                                {loc.name}
-                              </div>
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Algorithm Buttons */}
-                  <div>
-                    <Label className="text-xs font-semibold mb-1 block">Select Algorithm</Label>
-                    <div className="grid grid-cols-4 gap-2">
-                      <Button
-                        variant={selectedAlgorithm === 'nearest-neighbor' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleOptimizeRoute('nearest-neighbor')}
-                        disabled={!startingPoint || loading}
-                        className="h-14 flex flex-col items-center justify-center text-xs"
-                      >
-                        <div className="text-lg mb-0.5">NN</div>
-                        <div className="font-semibold">Nearest</div>
-                      </Button>
-
-                      <Button
-                        variant={selectedAlgorithm === '2-opt' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleOptimizeRoute('2-opt')}
-                        disabled={!startingPoint || loading}
-                        className="h-14 flex flex-col items-center justify-center text-xs"
-                      >
-                        <div className="text-lg mb-0.5">2O</div>
-                        <div className="font-semibold">2-Opt</div>
-                      </Button>
-
-                      <Button
-                        variant={selectedAlgorithm === 'simulated-annealing' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleOptimizeRoute('simulated-annealing')}
-                        disabled={!startingPoint || loading}
-                        className="h-14 flex flex-col items-center justify-center text-xs"
-                      >
-                        <div className="text-lg mb-0.5">SA</div>
-                        <div className="font-semibold">Anneal</div>
-                      </Button>
-
-                      <Button
-                        variant={selectedAlgorithm === 'genetic' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleOptimizeRoute('genetic')}
-                        disabled={!startingPoint || loading}
-                        className="h-14 flex flex-col items-center justify-center text-xs"
-                      >
-                        <div className="text-lg mb-0.5">GA</div>
-                        <div className="font-semibold">Genetic</div>
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Route Info */}
-                  {optimizedRoute.length > 0 && (
-                    <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div className="text-xs font-semibold text-blue-900">
-                          {selectedAlgorithm} Algorithm
-                        </div>
-                        <div className="text-xs text-blue-700 font-medium">
-                          {optimizedRoute.length} locations
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </div>
     </div>
   );
+}
+
+function formatAlgorithmName(value: string) {
+  const names: Record<string, string> = {
+    'nearest-neighbor': 'Nearest Neighbor',
+    '2-opt': '2-Opt',
+    'simulated-annealing': 'Simulated Annealing',
+    genetic: 'Genetic Algorithm',
+  };
+  return names[value] || value;
+}
+
+function formatDropdownLabel(value: string, maxLength = 34) {
+  const normalized = value.trim().replace(/\s+/g, ' ');
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength - 1)}…`;
 }

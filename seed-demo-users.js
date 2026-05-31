@@ -27,7 +27,28 @@ async function seedDemoUsers() {
     });
     console.log(`✅ Created/Updated Admin User: ${adminEmail} (password: ${adminPassword})`);
 
-    // 2. Dispatcher User
+    // 2. Analyst User
+    const analystEmail = 'analyst@routesense.com';
+    const analystPassword = 'analyst';
+    const hashedAnalystPassword = await bcrypt.hash(analystPassword, 10);
+
+    await prisma.user.upsert({
+      where: { email: analystEmail },
+      update: {
+        password: hashedAnalystPassword,
+        role: 'ANALYST',
+        name: 'Analyst User'
+      },
+      create: {
+        email: analystEmail,
+        name: 'Analyst User',
+        password: hashedAnalystPassword,
+        role: 'ANALYST'
+      }
+    });
+    console.log(`✅ Created/Updated Analyst User: ${analystEmail} (password: ${analystPassword})`);
+
+    // 3. Dispatcher User
     const dispatcherEmail = 'dispatcher@gmail.com';
     const dispatcherPassword = 'dispatcher';
     const hashedDispatcherPassword = await bcrypt.hash(dispatcherPassword, 10);
@@ -48,7 +69,7 @@ async function seedDemoUsers() {
     });
     console.log(`✅ Created/Updated Dispatcher User: ${dispatcherEmail} (password: ${dispatcherPassword})`);
 
-    // 3. Driver User
+    // 4. Driver User
     const driverEmail = 'rajesh.driver@delivery.com';
     const driverPassword = 'driverdai';
     const hashedDriverPassword = await bcrypt.hash(driverPassword, 10);

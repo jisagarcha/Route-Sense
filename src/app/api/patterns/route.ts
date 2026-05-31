@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { apriori, formatSupport, getItemsetDescription } from '@/lib/apriori';
 
+const algorithmInfo = {
+  name: 'Apriori',
+  complexity: 'Exponential (worst case), pruned by minimum support',
+  description: 'Frequent itemset mining to discover common location patterns',
+};
+
 // GET /api/patterns - Run Apriori algorithm on historical routes
 export async function GET(request: NextRequest) {
   try {
@@ -36,28 +42,68 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch all route requests
+    const driverRoutes = await prisma.package.findMany({
+      where: {
+        driverId: { not: null },
+        status: {
+          in: [
+            'ASSIGNED',
+            'COLLECTED_FROM_WAREHOUSE',
+            'IN_TRANSIT',
+            'DELIVERED',
+            'FAILED',
+          ],
+        },
+      },
+      select: {
+        id: true,
+        packageName: true,
+        warehouseAddress: true,
+        warehouseLat: true,
+        warehouseLong: true,
+        deliveryAddress: true,
+        items: {
+          select: {
+            deliveryAddress: true,
+            deliveryLat: true,
+            deliveryLong: true,
+            sequence: true,
+          },
+          orderBy: { sequence: 'asc' },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    const driverTransactions = driverRoutes
+      .map((route) => getDeliveryTransaction(route))
+      .filter((transaction) => transaction.length >= minItemsetSize);
+
+    // Keep shortest-path route requests as a fallback/source for older demo data.
     const routeRequests = await prisma.routeRequest.findMany({
       select: {
         id: true,
         pathLocations: true,
       },
     });
+    const routeRequestTransactions = routeRequests
+      .map((route) => route.pathLocations)
+      .filter((transaction) => transaction.length >= minItemsetSize);
 
-    if (routeRequests.length === 0) {
+    const transactions = [...driverTransactions, ...routeRequestTransactions];
+
+    if (transactions.length === 0) {
       return NextResponse.json(
         {
           frequentItemsets: [],
           minSupport,
           totalTransactions: 0,
-          message: 'No route requests found in the database',
+          algorithm: algorithmInfo,
+          message: 'No driver route history or route requests found in the database',
         },
         { status: 200 }
       );
     }
-
-    // Extract transactions (each route's pathLocations)
-    const transactions = routeRequests.map((route: { pathLocations: string[] }) => route.pathLocations);
 
     // Run Apriori algorithm
     const result = apriori(
@@ -82,11 +128,11 @@ export async function GET(request: NextRequest) {
         frequentItemsets: formattedItemsets,
         minSupport,
         totalTransactions: result.totalTransactions,
-        algorithm: {
-          name: 'Apriori',
-          complexity: 'Exponential (worst case), pruned by minimum support',
-          description: 'Frequent itemset mining to discover common location patterns',
+        transactionSources: {
+          driverRoutes: driverTransactions.length,
+          routeRequests: routeRequestTransactions.length,
         },
+        algorithm: algorithmInfo,
       },
       { status: 200 }
     );
@@ -97,4 +143,50 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function getDeliveryTransaction(route: {
+  packageName: string;
+  warehouseAddress: string | null;
+  warehouseLat: number | null;
+  warehouseLong: number | null;
+  deliveryAddress: string | null;
+  items: Array<{
+    deliveryAddress: string | null;
+    deliveryLat: number | null;
+    deliveryLong: number | null;
+  }>;
+}) {
+  const labels = new Set<string>();
+
+  const warehouseLabel =
+    formatCoordinateLabel(route.warehouseLat, route.warehouseLong) ||
+    (route.warehouseAddress ? normalizeLocationLabel(route.warehouseAddress) : null);
+  if (warehouseLabel) labels.add(warehouseLabel);
+
+  for (const item of route.items) {
+    labels.add(
+      normalizeLocationLabel(
+        formatCoordinateLabel(item.deliveryLat, item.deliveryLong) ||
+          item.deliveryAddress ||
+          route.deliveryAddress ||
+          route.packageName
+      )
+    );
+  }
+
+  if (labels.size === 0 && route.deliveryAddress) {
+    labels.add(normalizeLocationLabel(route.deliveryAddress));
+  }
+
+  return Array.from(labels).filter(Boolean);
+}
+
+function normalizeLocationLabel(value: string) {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
+function formatCoordinateLabel(lat: number | null, lng: number | null) {
+  if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) return null;
+  return `Zone ${Number(lat).toFixed(2)}, ${Number(lng).toFixed(2)}`;
 }

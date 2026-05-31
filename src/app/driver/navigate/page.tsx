@@ -53,6 +53,7 @@ interface RouteStop {
   id: string;
   packageId: string;
   itemId?: string;
+  itemIds?: string[];
   kind: "warehouse" | "delivery";
   lat: number;
   lng: number;
@@ -61,6 +62,7 @@ interface RouteStop {
   status: string;
   packageName: string;
   itemName?: string | null;
+  itemSummary?: string | null;
   quantity?: number;
   recipientName?: string | null;
   recipientPhone?: string | null;
@@ -95,7 +97,7 @@ export default function DriverNavigatePage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to fetch packages");
       setPackages((data.packages || []).filter((pkg: DriverPackage) =>
-        ['ASSIGNED', 'COLLECTED_FROM_WAREHOUSE', 'IN_TRANSIT', 'FAILED'].includes(pkg.status)
+        ['ASSIGNED', 'COLLECTED_FROM_WAREHOUSE', 'IN_TRANSIT'].includes(pkg.status)
       ));
     } catch (fetchError) {
       setError(fetchError instanceof Error ? fetchError.message : "Failed to load navigation");
@@ -177,34 +179,40 @@ export default function DriverNavigatePage() {
         (a, b) => (a.sequence ?? 999) - (b.sequence ?? 999)
       );
 
-      for (const item of items) {
-        const lat = Number(item.deliveryLat);
-        const lng = Number(item.deliveryLong);
-        if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+      const primaryItem = items.find((item) =>
+        Number.isFinite(Number(item.deliveryLat)) &&
+        Number.isFinite(Number(item.deliveryLong))
+      );
+      const lat = Number(pkg.deliveryLat ?? primaryItem?.deliveryLat);
+      const lng = Number(pkg.deliveryLong ?? primaryItem?.deliveryLong);
 
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
         routeStops.push({
-          id: `${pkg.id}:${item.id}`,
+          id: `${pkg.id}:delivery`,
           packageId: pkg.id,
-          itemId: item.id,
+          itemIds: items.map((item) => item.id),
           kind: "delivery",
           lat,
           lng,
           label: "",
-          address: item.deliveryAddress || pkg.deliveryAddress || pkg.packageName,
+          address: pkg.deliveryAddress || primaryItem?.deliveryAddress || pkg.packageName,
           status: pkg.status,
           packageName: pkg.packageName,
-          itemName: item.product?.name || null,
-          quantity: item.quantity,
-          recipientName: item.recipientName || null,
-          recipientPhone: item.recipientPhone || null,
-          deliveryStatus: item.deliveryStatus,
-          collectedAt: item.collectedAt ? String(item.collectedAt) : null,
-          deliveredAt: item.deliveredAt ? String(item.deliveredAt) : null,
-          failureReason: item.failureReason || null,
+          itemSummary: summarizePackageItems(items),
+          recipientName: pkg.recipientName || primaryItem?.recipientName || null,
+          recipientPhone: pkg.recipientPhone || primaryItem?.recipientPhone || null,
+          deliveryStatus: getPackageDeliveryStatus(pkg.status, items),
+          collectedAt: pkg.items?.find((item) => item.collectedAt)?.collectedAt
+            ? String(pkg.items.find((item) => item.collectedAt)?.collectedAt)
+            : null,
+          deliveredAt: pkg.items?.find((item) => item.deliveredAt)?.deliveredAt
+            ? String(pkg.items.find((item) => item.deliveredAt)?.deliveredAt)
+            : null,
+          failureReason: pkg.failureReason || items.find((item) => item.failureReason)?.failureReason || null,
         });
       }
 
-      if (items.length === 0 && Number.isFinite(Number(pkg.deliveryLat)) && Number.isFinite(Number(pkg.deliveryLong))) {
+      if (items.length === 0 && !Number.isFinite(lat) && Number.isFinite(Number(pkg.deliveryLat)) && Number.isFinite(Number(pkg.deliveryLong))) {
         routeStops.push({
           id: `${pkg.id}:delivery`,
           packageId: pkg.id,
@@ -346,11 +354,11 @@ export default function DriverNavigatePage() {
     }
   };
 
-  const updateItemStatus = async (packageId: string, itemId: string, status: "DELIVERED" | "FAILED", reason?: string) => {
-    setBusy(`${packageId}-${itemId}-${status}`);
+  const updatePackageStatus = async (packageId: string, status: "DELIVERED" | "FAILED", reason?: string) => {
+    setBusy(`${packageId}-${status}`);
     setError("");
     try {
-      const response = await fetch(`/api/packages/${packageId}/items/${itemId}/status`, {
+      const response = await fetch(`/api/packages/${packageId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -502,11 +510,11 @@ export default function DriverNavigatePage() {
                                   <p className="truncate font-semibold text-slate-900">
                                     {stop.kind === "warehouse" ? "Warehouse start" : stop.address}
                                   </p>
-                                  {stop.kind === "delivery" && (
-                                    <p className="text-sm text-slate-600">
-                                      {stop.itemName ? `${stop.quantity} x ${stop.itemName}` : stop.packageName}
-                                    </p>
-                                  )}
+                              {stop.kind === "delivery" && (
+                                <p className="text-sm text-slate-600">
+                                      {stop.itemSummary || stop.packageName}
+                                </p>
+                              )}
                                   {stop.recipientName && (
                                     <p className="text-sm text-slate-600">{stop.recipientName}</p>
                                   )}
@@ -522,12 +530,12 @@ export default function DriverNavigatePage() {
                                 </span>
                               </div>
 
-                              {stop.kind === "delivery" && !terminal && canUpdateDeliveryStops && stop.itemId && (
+                              {stop.kind === "delivery" && !terminal && canUpdateDeliveryStops && (
                                 <div className="mt-3 grid grid-cols-2 gap-2">
                                   <Button
                                     className="h-10 bg-emerald-600 text-sm hover:bg-emerald-700"
                                     disabled={busy !== null}
-                                    onClick={() => updateItemStatus(activePackage.id, stop.itemId as string, "DELIVERED")}
+                                    onClick={() => updatePackageStatus(activePackage.id, "DELIVERED")}
                                   >
                                     <CheckCircle2 className="h-4 w-4" />
                                     Delivered
@@ -536,7 +544,7 @@ export default function DriverNavigatePage() {
                                     variant="outline"
                                     className="h-10 border-red-200 text-red-700 hover:bg-red-50"
                                     disabled={busy !== null}
-                                    onClick={() => updateItemStatus(activePackage.id, stop.itemId as string, "FAILED", failureReason)}
+                                    onClick={() => updatePackageStatus(activePackage.id, "FAILED", failureReason)}
                                   >
                                     <XCircle className="h-4 w-4" />
                                     Refused
@@ -605,6 +613,38 @@ function isTerminalStopStatus(status?: string | null) {
 
 function formatDeliveryStatus(value?: string | null) {
   return String(value || "PENDING").replaceAll("_", " ");
+}
+
+function getPackageDeliveryStatus(
+  packageStatus: string,
+  items: NonNullable<DriverPackage["items"]>
+) {
+  if (packageStatus === "DELIVERED" || packageStatus === "FAILED") return packageStatus;
+  if (items.length === 0) return packageStatus;
+
+  const statuses = items.map((item) => String(item.deliveryStatus || "PENDING").toUpperCase());
+  if (statuses.every((status) => status === "DELIVERED")) return "DELIVERED";
+  if (statuses.every((status) => status === "FAILED")) return "FAILED";
+  if (statuses.some((status) => status === "FAILED")) return "IN_PROGRESS";
+  if (statuses.some((status) => status === "DELIVERED")) return "IN_PROGRESS";
+  if (statuses.some((status) => status === "COLLECTED_FROM_WAREHOUSE")) return "COLLECTED_FROM_WAREHOUSE";
+  return packageStatus;
+}
+
+function summarizePackageItems(items: NonNullable<DriverPackage["items"]>) {
+  if (items.length === 0) return null;
+  if (items.length === 1) {
+    const item = items[0];
+    return item.product?.name ? `${item.quantity} x ${item.product.name}` : "1 package item";
+  }
+
+  const itemNames = items
+    .slice(0, 2)
+    .map((item) => item.product?.name)
+    .filter((name): name is string => Boolean(name));
+
+  if (itemNames.length === 0) return `${items.length} package items`;
+  return `${items.length} items: ${itemNames.join(", ")}${items.length > 2 ? "..." : ""}`;
 }
 
 function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
