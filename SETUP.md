@@ -1,195 +1,255 @@
-# 🚀 Quick Setup Guide
+# RouteSense Startup Guide
 
-Follow these steps to get the Delivery Route & Cost Optimizer running:
+This guide starts the full RouteSense project locally: PostgreSQL, Prisma database setup, demo users, seed data, and the Next.js development server.
 
-## Step 1: Environment Setup
+## Quick Setup
+
+For the existing local macOS/Homebrew setup:
 
 ```bash
-# Switch to Node.js 22
-nvm use 22
-
-# Verify Node version
-node --version  # Should show v22.x.x
+cd /Users/sagarsandha/Downloads/RouteSense-main
+brew services start postgresql@17
+npm install
+npx prisma generate
+npx prisma db push
+node seed-demo-users.js
+npx prisma db seed
+node seed-roads.js
+npm run dev
 ```
 
-## Step 2: Install Dependencies
+Then open:
 
-```bash
-# Install all packages
-yarn install
+```text
+http://localhost:3000
 ```
 
-## Step 3: Database Configuration
-
-1. **Start PostgreSQL** (if not already running)
-   ```bash
-   # macOS with Homebrew
-   brew services start postgresql@14
-   
-   # Or use Docker
-   docker run --name postgres -e POSTGRES_PASSWORD=password -p 5432:5432 -d postgres
-   ```
-
-2. **Create Database**
-   ```bash
-   # Connect to PostgreSQL
-   psql postgres
-   
-   # Create database
-   CREATE DATABASE delivery_optimizer;
-   
-   # Exit
-   \q
-   ```
-
-3. **Update .env file**
-   
-   Make sure your `.env` file has the correct database URL:
-   ```env
-   DATABASE_URL="postgresql://postgres:password@localhost:5432/delivery_optimizer?schema=public"
-   ```
-   
-   Replace `postgres:password` with your PostgreSQL username and password.
-
-## Step 4: Initialize Database
+If the database does not exist yet:
 
 ```bash
-# Generate Prisma Client
-yarn prisma generate
-
-# Push schema to database
-yarn prisma db push
-
-# (Optional) Open Prisma Studio to view database
-yarn prisma studio
+createdb delivery_optimizer
 ```
 
-## Step 5: Start Development Server
+## 1. Requirements
+
+- Node.js 20+ or 22
+- npm
+- PostgreSQL running on port `5432`
+- Optional: Docker, if you prefer Docker Compose
+
+Check versions:
 
 ```bash
-yarn dev
+node --version
+npm --version
+psql --version
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+## 2. Install Dependencies
 
-## Step 6: Initial Data Setup
+From the project folder:
 
-### Add Locations
-1. Go to [http://localhost:3000/admin/locations](http://localhost:3000/admin/locations)
-2. Click "Add New Location"
-3. Add these sample locations:
-   - **Warehouse A** (Central Hub)
-   - **Store B** (Retail Location)
-   - **Customer C** (Delivery Point)
-   - **Customer D** (Delivery Point)
-   - **Hub E** (Distribution Center)
-
-### Add Roads
-1. Go to [http://localhost:3000/admin/roads](http://localhost:3000/admin/roads)
-2. Click "Add New Road"
-3. Create these connections:
-   - Warehouse A → Store B: 5 km (Two-way)
-   - Store B → Customer C: 3 km (Two-way)
-   - Warehouse A → Hub E: 8 km (Two-way)
-   - Hub E → Customer C: 4 km (Two-way)
-   - Customer C → Customer D: 2 km (Two-way)
-   - Store B → Customer D: 7 km (Two-way)
-
-### Test Route Computation
-1. Go to [http://localhost:3000](http://localhost:3000)
-2. Select Source: **Warehouse A**
-3. Select Destination: **Customer D**
-4. Click "Find Best Route"
-5. View the optimal path and distance
-
-### Analyze Patterns
-1. Compute several different routes first
-2. Go to [http://localhost:3000/admin/patterns](http://localhost:3000/admin/patterns)
-3. Set Min Support: 0.3
-4. Click "Analyze Patterns"
-5. View frequent location combinations
-
-## Troubleshooting
-
-### Database Connection Issues
 ```bash
-# Check if PostgreSQL is running
-pg_isready
-
-# Test connection
-psql -U postgres -d delivery_optimizer -c "SELECT 1;"
+cd /Users/sagarsandha/Downloads/RouteSense-main
+npm install
 ```
 
-### Prisma Issues
-```bash
-# Reset database (WARNING: Deletes all data)
-yarn prisma db push --force-reset
+## 3. Start PostgreSQL
 
-# Regenerate Prisma Client
-yarn prisma generate
+### macOS Homebrew
+
+Use the PostgreSQL version installed on your machine. For example:
+
+```bash
+brew services start postgresql@17
 ```
 
-### Port Already in Use
-```bash
-# Kill process on port 3000
-lsof -ti:3000 | xargs kill -9
+Check that PostgreSQL is listening:
 
-# Or use a different port
-PORT=3001 yarn dev
+```bash
+lsof -nP -iTCP:5432 -sTCP:LISTEN
 ```
 
-### TypeScript Errors
+### Create Local Database
+
+The current local `.env` uses:
+
+```env
+DATABASE_URL="postgresql://sagarsandha@localhost:5432/delivery_optimizer?schema=public"
+```
+
+Create that database if it does not exist:
+
 ```bash
-# Clear Next.js cache
+createdb delivery_optimizer
+```
+
+If your PostgreSQL username/database is different, update `.env` accordingly.
+
+## 4. Environment File
+
+If `.env` is missing, create it from the example:
+
+```bash
+cp .env.example .env
+```
+
+For local development, make sure `.env` has:
+
+```env
+DATABASE_URL="postgresql://sagarsandha@localhost:5432/delivery_optimizer?schema=public"
+NEXTAUTH_SECRET="supersecret_nextauth_string_1234567890_route_sense"
+NEXTAUTH_URL="http://localhost:3000"
+OSRM_BASE_URL="https://router.project-osrm.org"
+NOMINATIM_BASE_URL="https://nominatim.openstreetmap.org"
+NOMINATIM_USER_AGENT="RouteSense/1.0"
+```
+
+## 5. Initialize Database
+
+Run Prisma and seed scripts:
+
+```bash
+npx prisma generate
+npx prisma db push
+node seed-demo-users.js
+npx prisma db seed
+node seed-roads.js
+```
+
+Or use the setup script:
+
+```bash
+./setup-db.sh
+node seed-roads.js
+```
+
+## 6. Start the App
+
+```bash
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+## 7. Demo Accounts
+
+Use these demo logins:
+
+```text
+Admin:      admin@admin.com / anihortes
+Analyst:    analyst@routesense.com / analyst
+Dispatcher: dispatcher@gmail.com / dispatcher
+Driver:     rajesh.driver@delivery.com / driverdai
+```
+
+Role pages:
+
+```text
+Admin map:          http://localhost:3000/admin/map
+Analyst history:    http://localhost:3000/admin/history
+Analyst patterns:   http://localhost:3000/admin/patterns
+Dispatcher routes:  http://localhost:3000/dispatcher/routes/new
+Driver dashboard:   http://localhost:3000/driver
+```
+
+## 8. Docker Alternative
+
+If Docker is installed:
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+Docker Compose starts PostgreSQL and the app, pushes the Prisma schema, and seeds demo data.
+
+## 9. Common Commands
+
+```bash
+npm run dev
+npm run build
+npx prisma generate
+npx prisma db push
+npx prisma studio
+node seed-demo-users.js
+npx prisma db seed
+node seed-roads.js
+```
+
+## 10. Troubleshooting
+
+### Database Cannot Connect
+
+Check PostgreSQL:
+
+```bash
+lsof -nP -iTCP:5432 -sTCP:LISTEN
+psql -h localhost -d delivery_optimizer -c "SELECT 1;"
+```
+
+Start PostgreSQL:
+
+```bash
+brew services start postgresql@17
+```
+
+### Missing Tables
+
+```bash
+npx prisma db push
+```
+
+### Demo Login Fails
+
+```bash
+node seed-demo-users.js
+```
+
+### Missing Products, Warehouses, Locations, Roads
+
+```bash
+npx prisma db seed
+node seed-roads.js
+```
+
+### Port 3000 Already Used
+
+```bash
+lsof -nP -iTCP:3000 -sTCP:LISTEN
+```
+
+Start on another port:
+
+```bash
+npm run dev -- -p 3001
+```
+
+### Clean Rebuild
+
+```bash
 rm -rf .next
-
-# Reinstall dependencies
-rm -rf node_modules yarn.lock
-yarn install
+npm run build
 ```
 
-## Verification Checklist
+## 11. Recommended Startup Order
 
-- [ ] Node.js v22 installed (`node --version`)
-- [ ] PostgreSQL running
-- [ ] Database `delivery_optimizer` created
-- [ ] `.env` file configured
-- [ ] Dependencies installed (`yarn install`)
-- [ ] Prisma generated (`yarn prisma generate`)
-- [ ] Database migrated (`yarn prisma db push`)
-- [ ] Dev server running (`yarn dev`)
-- [ ] Can access http://localhost:3000
-- [ ] Locations added
-- [ ] Roads created
-- [ ] Route computed successfully
+Use this order every time after restarting your machine:
 
-## Next Steps
+```bash
+cd /Users/sagarsandha/Downloads/RouteSense-main
+brew services start postgresql@17
+npm run dev
+```
 
-1. **Explore the UI**: Navigate through all pages
-2. **Test APIs**: Use the browser DevTools Network tab
-3. **Add More Data**: Create a realistic road network
-4. **Run Analytics**: Use the patterns page after adding routes
-5. **Review Code**: Check the algorithm implementations in `src/lib/`
+If database data is missing:
 
-## Demo Credentials
-
-This project doesn't have authentication by default. All pages are accessible directly.
-
-For production use, consider adding:
-- User authentication (NextAuth.js)
-- Role-based access control
-- API rate limiting
-- Input sanitization
-
-## Support
-
-If you encounter issues:
-1. Check the browser console for errors
-2. Check the terminal where `yarn dev` is running
-3. Verify database connection
-4. Ensure all dependencies are installed
-5. Try clearing Next.js cache and rebuilding
-
----
-
-Happy coding! 🚀
+```bash
+./setup-db.sh
+node seed-roads.js
+npm run dev
+```
