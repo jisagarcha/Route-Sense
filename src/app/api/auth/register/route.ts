@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const allowedSelfServiceRoles = new Set(["DISPATCHER", "DRIVER"]);
+    const allowedSelfServiceRoles = new Set(["DISPATCHER", "DRIVER", "ANALYST"]);
     const userRole = allowedSelfServiceRoles.has(role) ? role : "DISPATCHER";
 
     // Check if user already exists

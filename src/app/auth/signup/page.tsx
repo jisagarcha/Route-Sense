@@ -77,7 +77,7 @@ export default function SignUpPage() {
         <Card className="rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl p-8 shadow-2xl">
           <div className="text-center">
             <h2 className="text-3xl font-extrabold text-slate-950">
-              Create your account
+              Create Your Account
             </h2>
             <p className="mt-2 text-sm text-slate-600">
               Join RouteSense to optimize your delivery routes
@@ -107,7 +107,7 @@ export default function SignUpPage() {
             </div>
 
             <div>
-              <Label htmlFor="email">Email address</Label>
+              <Label htmlFor="email">Email Address</Label>
               <Input
                 id="email"
                 name="email"
@@ -161,6 +161,7 @@ export default function SignUpPage() {
                 <SelectContent className="bg-white">
                   <SelectItem value="DISPATCHER">Dispatcher</SelectItem>
                   <SelectItem value="DRIVER">Driver</SelectItem>
+                  <SelectItem value="ANALYST">Analyst</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -172,14 +173,14 @@ export default function SignUpPage() {
               className="w-full bg-[#65000B] hover:bg-[#4d0008] text-white font-semibold transition"
               disabled={loading}
             >
-              {loading ? "Creating account..." : "Sign up"}
+              {loading ? "Creating Account..." : "Sign Up"}
             </Button>
           </div>
 
           <div className="text-center text-sm">
             <span className="text-gray-600">Already have an account? </span>
             <a href="/auth/signin" className="font-semibold text-[#65000B] hover:underline">
-              Sign in
+              Sign In
             </a>
           </div>
         </form>

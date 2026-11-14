@@ -94,11 +94,11 @@ export default function SignInPage() {
           {/* Left Column: Frosted Glass Panel */}
           <div className="rounded-3xl border border-white/80 bg-white/85 backdrop-blur-xl p-6 sm:p-8 shadow-2xl space-y-6">
             <div className="inline-flex items-center rounded-full border border-[#65000B]/25 bg-[#65000B]/10 px-3.5 py-1 text-xs font-semibold text-[#65000B]">
-              RouteSense access
+              RouteSense Access
             </div>
             <div className="space-y-3">
               <h2 className="text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
-                Sign in to RouteSense
+                Sign In to RouteSense
               </h2>
               <p className="max-w-xl text-base leading-relaxed text-slate-700">
                 Dispatch packages, track drivers, and manage live routes from a single workspace.
@@ -120,7 +120,7 @@ export default function SignInPage() {
                 disabled={loading}
                 className="h-12 justify-start border-white/80 bg-white/90 text-slate-900 shadow-2xs hover:border-[#65000B]/40 hover:bg-[#65000B]/10 transition"
               >
-                Admin demo
+                🛡️ Admin Demo
               </Button>
               <Button
                 type="button"
@@ -136,7 +136,7 @@ export default function SignInPage() {
                 disabled={loading}
                 className="h-12 justify-start border-white/80 bg-white/90 text-slate-900 shadow-2xs hover:border-[#65000B]/40 hover:bg-[#65000B]/10 transition"
               >
-                Analyst demo
+                📊 Analyst Demo
               </Button>
               <Button
                 type="button"
@@ -152,7 +152,7 @@ export default function SignInPage() {
                 disabled={loading}
                 className="h-12 justify-start border-white/80 bg-white/90 text-slate-900 shadow-2xs hover:border-[#65000B]/40 hover:bg-[#65000B]/10 transition"
               >
-                📦 Dispatcher demo
+                📦 Dispatcher Demo
               </Button>
               <Button
                 type="button"
@@ -168,12 +168,12 @@ export default function SignInPage() {
                 disabled={loading}
                 className="h-12 justify-start border-white/80 bg-white/90 text-slate-900 shadow-2xs hover:border-[#65000B]/40 hover:bg-[#65000B]/10 transition"
               >
-                🚚 Driver demo
+                🚚 Driver Demo
               </Button>
             </div>
 
             <div className="rounded-2xl border border-white/70 bg-white/75 backdrop-blur-sm p-4 shadow-2xs">
-              <p className="text-xs font-bold uppercase tracking-wider text-[#65000B]">Manual access</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-[#65000B]">Manual Access</p>
               <p className="mt-1 text-xs text-slate-600">
                 Use your email and password to sign in, or continue with Google.
               </p>
@@ -199,7 +199,7 @@ export default function SignInPage() {
 
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-slate-600">Email address</Label>
+                    <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-slate-600">Email Address</Label>
                     <Input
                       id="email"
                       name="email"
@@ -230,7 +230,7 @@ export default function SignInPage() {
                 </div>
 
                 <Button type="submit" className="h-11 w-full bg-[#65000B] font-semibold text-white shadow-md hover:bg-[#4d0008] transition" disabled={loading}>
-                  {loading ? "Signing in..." : "Sign in"}
+                  {loading ? "Signing In..." : "Sign In"}
                 </Button>
 
                 <div className="relative my-2">
@@ -266,13 +266,13 @@ export default function SignInPage() {
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                     />
                   </svg>
-                  Sign in with Google
+                  Sign In with Google
                 </Button>
 
                 <div className="text-center text-sm text-slate-600">
                   Don&apos;t have an account?{" "}
                   <a href="/auth/signup" className="font-semibold text-[#65000B] hover:underline">
-                    Sign up
+                    Sign Up
                   </a>
                 </div>
               </form>

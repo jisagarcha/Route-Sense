@@ -61,15 +61,15 @@ const features = [
 
 const roleTabs = {
   Dispatcher: {
-    title: "Route control",
+    title: "Route Control",
     points: ["Package queue", "Driver assignment", "Road-aware ETAs"],
   },
   Driver: {
-    title: "Live navigation",
+    title: "Live Navigation",
     points: ["Current stop", "GPS position", "Delivery actions"],
   },
   Admin: {
-    title: "Operations overview",
+    title: "Operations Overview",
     points: ["Warehouses", "Routes", "System history"],
   },
 } as const;
@@ -187,7 +187,7 @@ export default function Home() {
               />
               <span className="h-3.5 w-px bg-slate-300" />
               <p className="text-[11px] font-bold uppercase tracking-wider text-[#65000B]">
-                Delivery operations platform
+                Delivery Operations Platform
               </p>
             </div>
           </div>
@@ -210,11 +210,11 @@ export default function Home() {
               <div className="mt-8 flex flex-wrap gap-3">
                 <Button asChild size="lg" className="h-12 bg-[#65000B] px-8 font-semibold text-white shadow-md hover:bg-[#4d0008] hover:shadow-lg transition">
                   <Link href="/auth/signin" className="text-white font-semibold flex items-center justify-center">
-                    Sign in
+                    Sign In
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="h-12 border-white/80 bg-white/85 backdrop-blur-md px-6 font-semibold text-slate-800 shadow-sm hover:bg-white transition">
-                  <Link href="/auth/signup">Create account</Link>
+                  <Link href="/auth/signup">Create Account</Link>
                 </Button>
               </div>
 
@@ -240,7 +240,7 @@ export default function Home() {
                   <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                     OPERATIONAL SNAPSHOT
                   </p>
-                  <p className="mt-0.5 text-xl font-bold text-slate-950">Today&apos;s route control</p>
+                  <p className="mt-0.5 text-xl font-bold text-slate-950">Today&apos;s Route Control</p>
                 </div>
                 <span className="rounded-full bg-[#65000B]/10 px-2.5 py-1 text-xs font-bold text-[#65000B] tracking-wide">
                   LIVE
@@ -271,7 +271,7 @@ export default function Home() {
               <div className="mt-4 rounded-2xl border border-white/70 bg-white/60 backdrop-blur-sm p-4 shadow-2xs">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-bold text-slate-950">Route sequence</p>
+                    <p className="text-sm font-bold text-slate-950">Route Sequence</p>
                     <p className="text-xs text-slate-500">Warehouse to final stop</p>
                   </div>
                   <Route className="h-4 w-4 text-[#65000B]" />
@@ -309,27 +309,27 @@ export default function Home() {
       <section className="bg-white px-4 py-16">
         <div className="mx-auto max-w-7xl">
           <SectionHeading
-            eyebrow="How it works"
-            title="One operating loop from warehouse to doorstep"
+            eyebrow="How It Works"
+            title="One Operating Loop from Warehouse to Doorstep"
             text="RouteSense keeps the dispatch, driver, and package views connected so handoffs stay clear throughout the day."
           />
           <div className="mt-10 grid gap-5 lg:grid-cols-3">
             <StepCard
               icon={Building2}
               number="1"
-              title="Admin prepares the network"
+              title="Admin Prepares the Network"
               text="Warehouses, roads, and operational data stay ready before dispatch starts assigning work."
             />
             <StepCard
               icon={Route}
               number="2"
-              title="Dispatcher builds the route"
+              title="Dispatcher Builds the Route"
               text="Packages are optimized, assigned, and sequenced in one control surface."
             />
             <StepCard
               icon={Truck}
               number="3"
-              title="Driver follows the live route"
+              title="Driver Follows the Live Route"
               text="The delivery screen keeps GPS, active stop, and status controls in view."
             />
           </div>
@@ -339,8 +339,8 @@ export default function Home() {
       <section className="border-y border-slate-200 bg-slate-50 px-4 py-16">
         <div className="mx-auto max-w-7xl">
           <SectionHeading
-            eyebrow="Role preview"
-            title="Focused screens for every operator"
+            eyebrow="Role Preview"
+            title="Focused Screens for Every Operator"
             text="Each role gets a tighter view with the tools needed for that part of the day."
           />
           <div className="mt-8 flex flex-wrap gap-2">
@@ -388,8 +388,8 @@ export default function Home() {
       <section className="bg-white px-4 py-16">
         <div className="mx-auto max-w-7xl">
           <SectionHeading
-            eyebrow="Core system"
-            title="Everything dispatch needs when the day changes fast"
+            eyebrow="Core System"
+            title="Everything Dispatch Needs When the Day Changes Fast"
             text="The application is tuned for scanning, assignment, and route control rather than decorative browsing."
           />
           <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
@@ -410,15 +410,15 @@ export default function Home() {
       <section id="demo" className="border-y border-slate-200 bg-slate-50 px-4 py-16">
         <div className="mx-auto max-w-7xl">
           <SectionHeading
-            eyebrow="Interactive demo"
-            title="Plan a live delivery route"
+            eyebrow="Interactive Demo"
+            title="Plan a Live Delivery Route"
             text="Use the route preview to inspect stop order, live map state, and the driver handoff without taking over the whole page."
           />
           <div className="mt-10 grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.55fr)]">
             <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Route preview</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Route Preview</p>
                   <p className="mt-1 text-lg font-semibold text-slate-950">Warehouse to stop chain</p>
                 </div>
                 <span className="rounded-full bg-[#65000B]/10 px-3 py-1 text-xs font-semibold text-[#65000B]">
@@ -439,8 +439,8 @@ export default function Home() {
 
             <div className="space-y-4">
               <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#65000B]">Dispatcher view</p>
-                <h3 className="mt-2 text-xl font-semibold text-slate-950">One route, one control point</h3>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#65000B]">Dispatcher View</p>
+                <h3 className="mt-2 text-xl font-semibold text-slate-950">One Route, One Control Point</h3>
                 <p className="mt-3 text-sm leading-6 text-slate-600">
                   The preview stays compact on the page while still showing the warehouse, ordered stops, and route line.
                 </p>
@@ -453,7 +453,7 @@ export default function Home() {
                 </div>
               </div>
               <div className="rounded-3xl border border-slate-200 bg-[#65000B]/5 p-5">
-                <p className="text-sm font-semibold uppercase tracking-wide text-[#65000B]">Color system</p>
+                <p className="text-sm font-semibold uppercase tracking-wide text-[#65000B]">Color System</p>
                 <p className="mt-2 text-sm leading-6 text-slate-700">
                   White surfaces, slate text, and rich oxblood accents keep the page aligned with the brand without turning the interface heavy.
                 </p>
@@ -467,7 +467,7 @@ export default function Home() {
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col items-start justify-between gap-6 rounded-3xl border border-[#65000B]/20 bg-[#65000B]/5 p-8 md:flex-row md:items-center">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-[#65000B]">Get started</p>
+              <p className="text-sm font-semibold uppercase tracking-wide text-[#65000B]">Get Started</p>
               <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
                 Ready to run deliveries with less guesswork?
               </h2>
@@ -476,11 +476,11 @@ export default function Home() {
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button asChild className="h-11 bg-[#65000B] px-6 hover:bg-[#4d0008]">
-                <Link href="/auth/signin">Sign in</Link>
+              <Button asChild className="h-11 bg-[#65000B] px-6 font-semibold text-white shadow-md hover:bg-[#4d0008] transition">
+                <Link href="/auth/signin" className="text-white font-semibold">Sign In</Link>
               </Button>
-              <Button asChild variant="outline" className="h-11 border-slate-200 bg-white px-6 text-slate-900 hover:bg-slate-50">
-                <Link href="/auth/signup">Create account</Link>
+              <Button asChild variant="outline" className="h-11 border-slate-200 bg-white px-6 font-semibold text-slate-900 hover:bg-slate-50 transition">
+                <Link href="/auth/signup">Create Account</Link>
               </Button>
             </div>
           </div>
