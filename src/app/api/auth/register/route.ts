@@ -6,17 +6,35 @@ export async function POST(request: Request) {
   try {
     const { name, email, password, role } = await request.json();
 
+    const trimmedName = typeof name === "string" ? name.trim() : "";
+    const trimmedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+
     // Validation
-    if (!email || !password) {
+    if (!trimmedEmail || !password) {
       return NextResponse.json(
         { error: "Email and password are required" },
         { status: 400 }
       );
     }
 
-    if (password.length < 8) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return NextResponse.json(
+        { error: "Please provide a valid email address" },
+        { status: 400 }
+      );
+    }
+
+    if (typeof password !== "string" || password.length < 8) {
       return NextResponse.json(
         { error: "Password must be at least 8 characters" },
+        { status: 400 }
+      );
+    }
+
+    if (password.length > 128) {
+      return NextResponse.json(
+        { error: "Password must be under 128 characters" },
         { status: 400 }
       );
     }
@@ -26,7 +44,7 @@ export async function POST(request: Request) {
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: trimmedEmail },
     });
 
     if (existingUser) {
@@ -42,8 +60,8 @@ export async function POST(request: Request) {
     // Create user
     const user = await prisma.user.create({
       data: {
-        name,
-        email,
+        name: trimmedName || null,
+        email: trimmedEmail,
         password: hashedPassword,
         role: userRole,
         ...(userRole === "DRIVER" && {

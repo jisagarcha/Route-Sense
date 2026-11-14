@@ -81,7 +81,10 @@ export async function POST(
       }),
       prisma.driverProfile.updateMany({
         where: { userId: session.user.id },
-        data: { isAvailable: true, totalDeliveries: { increment: 1 } },
+        data: {
+          isAvailable: true,
+          ...(hasFailedStops ? {} : { totalDeliveries: { increment: 1 } }),
+        },
       }),
     ]);
 

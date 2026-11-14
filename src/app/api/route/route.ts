@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GeoPoint, getRoadRouteGeometry, isValidPoint } from "@/lib/delivery-routing";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const points = Array.isArray(body.points) ? (body.points as GeoPoint[]) : [];
 

@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DeliveryStopInput, isValidPoint, optimizeDeliveryRoute } from "@/lib/delivery-routing";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const body = await request.json();
     const { depot, stops, startTime, vehicleType, costPerKm } = body;
 

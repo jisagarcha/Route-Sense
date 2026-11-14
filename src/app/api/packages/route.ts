@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const driverId = searchParams.get('driverId');
     const dispatcherId = searchParams.get('dispatcherId');
+    const search = searchParams.get('search')?.trim();
     const limitParam = searchParams.get('limit');
     const offsetParam = searchParams.get('offset');
     const limit = Math.min(Math.max(Number(limitParam) || 50, 1), 100);
@@ -39,6 +40,14 @@ export async function GET(request: NextRequest) {
       where.driverId = session.user.id;
     } else if (session.user.role === 'DISPATCHER') {
       where.dispatcherId = session.user.id;
+    }
+
+    if (search) {
+      where.OR = [
+        { packageName: { contains: search, mode: 'insensitive' } },
+        { deliveryAddress: { contains: search, mode: 'insensitive' } },
+        { recipientName: { contains: search, mode: 'insensitive' } },
+      ];
     }
 
     // Additional filters

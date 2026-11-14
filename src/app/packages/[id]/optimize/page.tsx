@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -267,7 +267,7 @@ export default function OptimizePackagePage({ params }: { params: Promise<{ id: 
             deliveryLat: item.deliveryLat || deliveryLocations[index + 1]?.latitude,
             deliveryLong: item.deliveryLong || deliveryLocations[index + 1]?.longitude,
             deliveryAddress: item.deliveryAddress || deliveryLocations[index + 1]?.description,
-            sequence: optimizedRoute.indexOf(index + 1)
+            sequence: Math.max(0, optimizedRoute.indexOf(index + 1)),
           }))
         }),
       });
@@ -311,6 +311,11 @@ export default function OptimizePackagePage({ params }: { params: Promise<{ id: 
   const toRadians = (degrees: number): number => {
     return degrees * (Math.PI / 180);
   };
+
+  const itemsMissingCoords = useMemo(() => {
+    if (!packageData?.items) return [];
+    return packageData.items.filter((item) => !item.deliveryLat || !item.deliveryLong);
+  }, [packageData?.items]);
 
   if (loading) {
     return (
@@ -365,6 +370,14 @@ export default function OptimizePackagePage({ params }: { params: Promise<{ id: 
             </div>
 
             {/* Alerts */}
+            {itemsMissingCoords.length > 0 && (
+              <Alert className="text-sm border-amber-200 bg-amber-50">
+                <AlertDescription className="text-amber-800">
+                  ⚠️ {itemsMissingCoords.length} item(s) are missing delivery coordinates. Please review locations or update in Edit Details.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {error && (
               <Alert variant="destructive" className="text-sm">
                 <AlertDescription>{error}</AlertDescription>

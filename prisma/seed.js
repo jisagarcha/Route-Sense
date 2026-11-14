@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
 const fs = require('fs');
 const path = require('path');
@@ -67,17 +68,19 @@ async function seed() {
   console.log('Starting database seed...');
   
   try {
-    // Delete all existing locations first (optional)
-    console.log('Clearing existing locations...');
-    await prisma.location.deleteMany({});
-    
-    // Insert new locations
-    console.log('Inserting new locations...');
+    // Upsert base locations non-destructively
+    console.log('Ensuring base locations...');
     for (const location of locations) {
-      const created = await prisma.location.create({
-        data: location
+      const created = await prisma.location.upsert({
+        where: { name: location.name },
+        update: {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          description: location.description,
+        },
+        create: location,
       });
-      console.log(`✅ Created: ${created.name} (ID: ${created.id})`);
+      console.log(`✅ Ready: ${created.name} (ID: ${created.id})`);
     }
     
     // Seed additional Kathmandu locations

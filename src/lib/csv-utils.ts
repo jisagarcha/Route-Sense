@@ -34,15 +34,19 @@ export interface ValidationResult {
  * Parse CSV string into array of objects
  */
 export function parseCSV<T>(csvString: string): T[] {
-  const lines = csvString.trim().split("\n");
+  const normalized = csvString.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+  const lines = normalized.split("\n");
   if (lines.length === 0) return [];
 
-  const headers = lines[0].split(",").map((h) => h.trim());
+  const headers = parseCSVLine(lines[0]);
   const data: T[] = [];
 
   for (let i = 1; i < lines.length; i++) {
+    const rawLine = lines[i].trim();
+    if (!rawLine) continue; // Skip empty lines
+
     const values = parseCSVLine(lines[i]);
-    if (values.length === 0) continue; // Skip empty lines
+    if (values.length === 0) continue;
 
     const row: Record<string, unknown> = {};
     headers.forEach((header, index) => {
@@ -55,7 +59,7 @@ export function parseCSV<T>(csvString: string): T[] {
 }
 
 /**
- * Parse a single CSV line handling quoted values
+ * Parse a single CSV line handling quoted values and escaped quotes ("")
  */
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];
@@ -66,7 +70,12 @@ function parseCSVLine(line: string): string[] {
     const char = line[i];
 
     if (char === '"') {
-      inQuotes = !inQuotes;
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++; // Skip the escaped quote
+      } else {
+        inQuotes = !inQuotes;
+      }
     } else if (char === "," && !inQuotes) {
       result.push(current.trim());
       current = "";

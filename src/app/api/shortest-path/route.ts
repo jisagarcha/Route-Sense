@@ -2,12 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { buildAdjacencyList, dijkstra, astar, findAlternativeRoutes, RouteCache, GraphNode } from '@/lib/routing-engine';
 import { findSimilarRoutes, RouteVector } from '@/lib/similarity';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 // Global route cache (persist across requests)
 const routeCache = new RouteCache(1000, 60);
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { sourceLocationId, targetLocationId, algorithm = 'astar', useCache = true } = body;
 

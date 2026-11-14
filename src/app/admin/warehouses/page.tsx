@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { Building2, Loader2, Plus, Trash2 } from "lucide-react";
+import { Building2, Edit2, Loader2, Plus, Trash2, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +28,7 @@ export default function AdminWarehousesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     address: "",
@@ -53,13 +54,32 @@ export default function AdminWarehousesPage() {
     }
   };
 
-  const createWarehouse = async (event: React.FormEvent) => {
+  const handleStartEdit = (warehouse: Warehouse) => {
+    setEditingId(warehouse.id);
+    setForm({
+      name: warehouse.name,
+      address: warehouse.address,
+      lat: String(warehouse.lat),
+      lng: String(warehouse.lng),
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setForm({ name: "", address: "", lat: "27.7172", lng: "85.3120" });
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setSaving(true);
     setError("");
     try {
-      const response = await fetch("/api/warehouses", {
-        method: "POST",
+      const url = editingId ? `/api/warehouses/${editingId}` : "/api/warehouses";
+      const method = editingId ? "PATCH" : "POST";
+
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: form.name,
@@ -69,11 +89,12 @@ export default function AdminWarehousesPage() {
         }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to create warehouse");
-      setForm({ name: "", address: "", lat: "27.7172", lng: "85.3120" });
+      if (!response.ok) throw new Error(data.error || `Failed to ${editingId ? "update" : "create"} warehouse`);
+
+      handleCancelEdit();
       await fetchWarehouses();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Failed to create warehouse");
+      setError(saveError instanceof Error ? saveError.message : "Failed to save warehouse");
     } finally {
       setSaving(false);
     }
@@ -110,11 +131,16 @@ export default function AdminWarehousesPage() {
 
       <div className="grid gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
         <Card>
-          <CardHeader>
-            <CardTitle>Add Warehouse</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>{editingId ? "Edit Warehouse" : "Add Warehouse"}</CardTitle>
+            {editingId && (
+              <Button variant="ghost" size="sm" onClick={handleCancelEdit}>
+                <X className="mr-1 h-4 w-4" /> Cancel
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
-            <form onSubmit={createWarehouse} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Name</Label>
                 <Input
@@ -147,10 +173,23 @@ export default function AdminWarehousesPage() {
                   })
                 }
               />
-              <Button type="submit" disabled={saving} className="w-full">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Create Warehouse
-              </Button>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={saving} className="flex-1">
+                  {saving ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : editingId ? (
+                    <Edit2 className="mr-2 h-4 w-4" />
+                  ) : (
+                    <Plus className="mr-2 h-4 w-4" />
+                  )}
+                  {editingId ? "Save Changes" : "Create Warehouse"}
+                </Button>
+                {editingId && (
+                  <Button type="button" variant="outline" onClick={handleCancelEdit}>
+                    Cancel
+                  </Button>
+                )}
+              </div>
             </form>
           </CardContent>
         </Card>
@@ -183,14 +222,26 @@ export default function AdminWarehousesPage() {
                           {warehouse._count?.routes || 0} routes
                         </p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-red-600 hover:bg-red-50"
-                        onClick={() => deleteWarehouse(warehouse.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-blue-600 hover:bg-blue-50"
+                          onClick={() => handleStartEdit(warehouse)}
+                          title="Edit warehouse"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-red-600 hover:bg-red-50"
+                          onClick={() => deleteWarehouse(warehouse.id)}
+                          title="Delete warehouse"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}

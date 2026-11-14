@@ -249,7 +249,7 @@ export async function PATCH(
     console.error('Error updating package:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to update package';
     return NextResponse.json(
-      { error: errorMessage, details: error },
+      { error: errorMessage },
       { status: 500 }
     );
   }
@@ -406,6 +406,12 @@ async function findOrCreateWarehouse(lat: number, lng: number, address: string) 
   });
 
   if (existing) {
+    if (existing.lat !== lat || existing.lng !== lng) {
+      return prisma.warehouse.update({
+        where: { id: existing.id },
+        data: { lat, lng, address: address || existing.address },
+      });
+    }
     return existing;
   }
 

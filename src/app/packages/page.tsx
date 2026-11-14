@@ -66,7 +66,7 @@ export default function PackagesPage() {
 
   useEffect(() => {
     setPage(0);
-  }, [statusFilter]);
+  }, [statusFilter, debouncedSearchQuery]);
 
   const fetchPackages = useCallback(async (pageIndex = 0) => {
     setError('');
@@ -77,6 +77,9 @@ export default function PackagesPage() {
       });
       if (statusFilter !== 'ALL') {
         params.set('status', statusFilter);
+      }
+      if (debouncedSearchQuery.trim()) {
+        params.set('search', debouncedSearchQuery.trim());
       }
 
       const res = await fetch(`/api/packages?${params}`);
@@ -100,7 +103,7 @@ export default function PackagesPage() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, debouncedSearchQuery]);
 
   useEffect(() => {
     const refresh = () => {

@@ -111,15 +111,22 @@ function assignStopsToDrivers(depot: GeoPoint, drivers: DriverInput[], stops: De
   for (const stop of sortedStops) {
     let selected = assignments[0];
     let selectedScore = Number.POSITIVE_INFINITY;
+    let foundUnderCapacity = false;
 
     for (const assignment of assignments) {
+      const isOverCapacity = Boolean(assignment.driver.capacity && assignment.stops.length >= assignment.driver.capacity);
+      if (isOverCapacity && foundUnderCapacity) {
+        continue;
+      }
+
       const distance = haversineDistanceKm(assignment.cursor, stop);
-      const loadPenalty = assignment.stops.length * 0.7;
+      const loadPenalty = assignment.stops.length * 0.7 + (isOverCapacity ? 1000 : 0);
       const score = distance + loadPenalty;
 
-      if (score < selectedScore) {
+      if (score < selectedScore || (!foundUnderCapacity && !isOverCapacity)) {
         selectedScore = score;
         selected = assignment;
+        if (!isOverCapacity) foundUnderCapacity = true;
       }
     }
 

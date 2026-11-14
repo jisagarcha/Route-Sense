@@ -27,10 +27,10 @@ function generateCandidates(
 ): string[][] {
   const candidates: string[][] = [];
   const seen = new Set<string>();
+  const frequentSet = new Set(frequentItemsets.map((itemset) => itemset.join(",")));
 
   for (let i = 0; i < frequentItemsets.length; i++) {
     for (let j = i + 1; j < frequentItemsets.length; j++) {
-      // Join step: merge two itemsets if they share k-2 items
       const set1 = frequentItemsets[i];
       const set2 = frequentItemsets[j];
 
@@ -45,7 +45,7 @@ function generateCandidates(
           }
         }
       } else {
-        // Check if first k-2 items match
+        // Join step: itemsets must match on the first k-2 items
         const prefix1 = set1.slice(0, k - 2).join(',');
         const prefix2 = set2.slice(0, k - 2).join(',');
 
@@ -53,11 +53,24 @@ function generateCandidates(
           const candidate = Array.from(
             new Set([...set1, ...set2])
           ).sort();
+
           if (candidate.length === k) {
             const key = candidate.join(',');
             if (!seen.has(key)) {
-              seen.add(key);
-              candidates.push(candidate);
+              // Prune step: all (k-1) subsets of candidate must be in frequentSet
+              let allSubsetsFrequent = true;
+              for (let s = 0; s < candidate.length; s++) {
+                const subset = candidate.filter((_, idx) => idx !== s).join(",");
+                if (!frequentSet.has(subset)) {
+                  allSubsetsFrequent = false;
+                  break;
+                }
+              }
+
+              if (allSubsetsFrequent) {
+                seen.add(key);
+                candidates.push(candidate);
+              }
             }
           }
         }

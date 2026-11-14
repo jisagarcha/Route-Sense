@@ -85,6 +85,14 @@ export async function PATCH(
           items: { include: { product: true }, orderBy: { sequence: 'asc' } },
         },
       }),
+      ...(status === 'CANCELLED' && pkg.driverId
+        ? [
+            prisma.driverProfile.updateMany({
+              where: { userId: pkg.driverId },
+              data: { isAvailable: true },
+            }),
+          ]
+        : []),
       ...(status === 'DELIVERED' || status === 'FAILED'
         ? [
             prisma.packageItem.updateMany({
@@ -180,6 +188,13 @@ function buildDeliveryUpdate(status: string, timestamp: Date) {
     };
   }
 
+  if (status === 'CANCELLED') {
+    return {
+      status: 'FAILED' as const,
+      completedAt: timestamp,
+    };
+  }
+
   if (status === 'IN_TRANSIT') {
     return {
       status: 'IN_PROGRESS' as const,
@@ -188,6 +203,6 @@ function buildDeliveryUpdate(status: string, timestamp: Date) {
   }
 
   return {
-    status: 'IN_PROGRESS' as const,
+    status: 'PENDING' as const,
   };
 }

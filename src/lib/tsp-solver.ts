@@ -205,16 +205,30 @@ export function simulatedAnnealing(
   let bestPath = [...currentPath];
   let bestDistance = currentDistance;
 
+  if (currentPath.length <= 2) {
+    return {
+      path: currentPath,
+      totalDistance: currentDistance,
+      algorithm: "Simulated Annealing",
+      executionTime: performance.now() - startTime,
+      iterations: 0,
+    };
+  }
+
   let temperature = initialTemperature;
   let iterations = 0;
 
   while (temperature > 1) {
     iterations++;
 
-    // Generate neighbor solution by swapping two random locations
+    // Generate neighbor solution by swapping two random locations (avoiding start)
     const newPath = [...currentPath];
-    const i = Math.floor(Math.random() * (newPath.length - 1)) + 1;
-    const j = Math.floor(Math.random() * (newPath.length - 1)) + 1;
+    const maxIdx = newPath.length - 1;
+    const i = Math.floor(Math.random() * maxIdx) + 1;
+    let j = Math.floor(Math.random() * maxIdx) + 1;
+    if (i === j) {
+      j = (i % maxIdx) + 1;
+    }
     [newPath[i], newPath[j]] = [newPath[j], newPath[i]];
 
     const newDistance = calculatePathDistance(newPath, distanceMatrix);
@@ -345,43 +359,66 @@ export function geneticAlgorithm(
  */
 function orderCrossover(parent1: number[], parent2: number[]): [number[], number[]] {
   const size = parent1.length;
-  const start = Math.floor(Math.random() * (size - 1)) + 1; // Avoid swapping fixed start
-  const end = Math.floor(Math.random() * (size - start)) + start;
+  if (size <= 2) {
+    return [[...parent1], [...parent2]];
+  }
 
-  const child1 = new Array(size).fill(null);
-  const child2 = new Array(size).fill(null);
+  const start = Math.floor(Math.random() * (size - 2)) + 1; // Between index 1 and size-2
+  const end = Math.floor(Math.random() * (size - 1 - start)) + start;
 
-  // Copy fixed start
+  const child1: (number | null)[] = new Array(size).fill(null);
+  const child2: (number | null)[] = new Array(size).fill(null);
+
+  // Preserve fixed start
   child1[0] = parent1[0];
   child2[0] = parent2[0];
 
-  // Copy segments
+  // Copy crossover segments
   for (let i = start; i <= end; i++) {
     child1[i] = parent1[i];
     child2[i] = parent2[i];
   }
 
-  // Fill remaining positions
-  fillRemaining(child1, parent2);
-  fillRemaining(child2, parent1);
+  // Fill remaining positions safely
+  const cleanChild1 = fillRemaining(child1, parent2);
+  const cleanChild2 = fillRemaining(child2, parent1);
 
-  return [child1, child2];
+  return [cleanChild1, cleanChild2];
 }
 
-function fillRemaining(child: (number | null)[], parent: number[]): void {
+function fillRemaining(child: (number | null)[], parent: number[]): number[] {
   const used = new Set(child.filter((x): x is number => x !== null));
-  let childIdx = 1; // Start after fixed first position
+  let childIdx = 1;
 
   for (let i = 1; i < parent.length; i++) {
-    if (!used.has(parent[i])) {
+    const val = parent[i];
+    if (!used.has(val)) {
       while (childIdx < child.length && child[childIdx] !== null) {
         childIdx++;
       }
       if (childIdx < child.length) {
-        child[childIdx] = parent[i];
+        child[childIdx] = val;
+        used.add(val);
       }
     }
   }
+
+  // Fallback: If any slots remain null due to unexpected duplicate indices, fill with any missing items from parent
+  for (let i = 0; i < parent.length; i++) {
+    const val = parent[i];
+    if (!used.has(val)) {
+      while (childIdx < child.length && child[childIdx] !== null) {
+        childIdx++;
+      }
+      if (childIdx < child.length) {
+        child[childIdx] = val;
+        used.add(val);
+      }
+    }
+  }
+
+  // Guarantee no nulls remain in the returned array
+  return child.map((val, idx) => (val !== null ? val : parent[idx]));
 }
 
 function shuffle(values: number[]): number[] {

@@ -126,6 +126,7 @@ model Road {
   toLocation   Location @relation("RoadTo", fields: [toLocationId], references: [id], onDelete: Cascade)
 
   @@map("roads")
+  @@unique([fromLocationId, toLocationId])
   @@index([fromLocationId])
   @@index([toLocationId])
 }

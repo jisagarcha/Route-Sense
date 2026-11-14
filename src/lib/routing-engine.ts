@@ -225,6 +225,16 @@ export function dijkstra(
   }
 
   // Reconstruct path
+  if (distances[target] === Infinity) {
+    return {
+      path: [],
+      distance: Infinity,
+      found: false,
+      nodesExplored,
+      executionTime: performance.now() - startTime,
+    };
+  }
+
   const path: number[] = [];
   let current: number | null = target;
 
@@ -238,7 +248,7 @@ export function dijkstra(
   return {
     path,
     distance: distances[target],
-    found: distances[target] !== Infinity,
+    found: true,
     nodesExplored,
     executionTime,
   };
@@ -263,10 +273,14 @@ export function astar(
 
   // Fallback to Dijkstra if coordinates not available
   if (
-    !sourceNode?.latitude ||
-    !sourceNode?.longitude ||
-    !targetNode?.latitude ||
-    !targetNode?.longitude
+    sourceNode?.latitude === null ||
+    sourceNode?.latitude === undefined ||
+    sourceNode?.longitude === null ||
+    sourceNode?.longitude === undefined ||
+    targetNode?.latitude === null ||
+    targetNode?.latitude === undefined ||
+    targetNode?.longitude === null ||
+    targetNode?.longitude === undefined
   ) {
     return dijkstra(adjacencyList, source, target, Array.from(nodes.keys()));
   }

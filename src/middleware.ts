@@ -8,8 +8,12 @@ export default withAuth(
 
     const role = token?.role;
 
+    if (path.startsWith("/auth")) {
+      return NextResponse.next();
+    }
+
     if (
-      path.startsWith("/dispatcher") &&
+      (path.startsWith("/packages") || path.startsWith("/dispatcher")) &&
       role !== "ADMIN" &&
       role !== "DISPATCHER"
     ) {
@@ -44,6 +48,7 @@ export default withAuth(
     return NextResponse.next();
   },
   {
+    secret: process.env.NEXTAUTH_SECRET || "routesense-super-secret-key-for-local-dev-min-32-chars",
     callbacks: {
       authorized: ({ token, req }) => {
         // Public paths that don't require authentication
@@ -65,8 +70,7 @@ export default withAuth(
 
         if (
           (req.method === "POST" && path === "/api/geocode") ||
-          (req.method === "POST" && path === "/api/route") ||
-          (req.method === "POST" && path === "/api/delivery/optimize")
+          (req.method === "POST" && path === "/api/route")
         ) {
           return true;
         }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { apriori, formatSupport, getItemsetDescription } from '@/lib/apriori';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 const algorithmInfo = {
   name: 'Apriori',
@@ -11,6 +13,13 @@ const algorithmInfo = {
 // GET /api/patterns - Run Apriori algorithm on historical routes
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (session.user.role !== 'ADMIN' && session.user.role !== 'ANALYST') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     const { searchParams } = new URL(request.url);
     const minSupportParam = searchParams.get('minSupport');
     const minItemsetSizeParam = searchParams.get('minItemsetSize');

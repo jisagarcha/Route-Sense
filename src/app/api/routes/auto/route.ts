@@ -226,7 +226,12 @@ async function findOrCreateAutoWarehouse(lat: number, lng: number) {
     where: { name: 'Auto Route Origin' },
   });
 
-  if (existing) return existing;
+  if (existing) {
+    return prisma.warehouse.update({
+      where: { id: existing.id },
+      data: { lat, lng },
+    });
+  }
 
   return prisma.warehouse.create({
     data: {

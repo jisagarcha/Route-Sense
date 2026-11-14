@@ -17,6 +17,15 @@ export function useLeafletSetup() {
   }, []);
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 // Custom marker icons
 export const createCustomIcon = (color: string = "#bb2133", label?: string) => {
   return L.divIcon({
@@ -34,7 +43,7 @@ export const createCustomIcon = (color: string = "#bb2133", label?: string) => {
         align-items: center;
         justify-content: center;
       ">
-        ${label ? `<span style="transform: rotate(45deg); color: white; font-weight: bold; font-size: 12px;">${label}</span>` : ''}
+        ${label ? `<span style="transform: rotate(45deg); color: white; font-weight: bold; font-size: 12px;">${escapeHtml(String(label))}</span>` : ''}
       </div>
     `,
     iconSize: [30, 30],

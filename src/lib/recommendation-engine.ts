@@ -36,7 +36,7 @@ interface DriverRecommendation {
 /**
  * Normalize a value to 0-1 range
  */
-function normalize(value: number, min: number, max: number): number {
+export function normalize(value: number, min: number, max: number): number {
   if (max === min) return 1;
   return (value - min) / (max - min);
 }
@@ -44,7 +44,7 @@ function normalize(value: number, min: number, max: number): number {
 /**
  * Calculate cosine similarity between two vectors
  */
-function cosineSimilarity(vectorA: number[], vectorB: number[]): number {
+export function cosineSimilarity(vectorA: number[], vectorB: number[]): number {
   if (vectorA.length !== vectorB.length) {
     throw new Error('Vectors must have the same length');
   }
@@ -70,35 +70,64 @@ function cosineSimilarity(vectorA: number[], vectorB: number[]): number {
 }
 
 /**
- * Convert package attributes to a normalized vector
+ * Multi-criteria match score computation between package and driver
  */
-function packageToVector(pkg: PackageAttributes): number[] {
-  return [
-    normalize(pkg.weight, 0, 200), // Weight normalized (0-200kg range)
-    normalize(pkg.volume, 0, 100), // Volume normalized (0-100 cubic ft range)
-    pkg.isCritical ? 1 : 0, // Critical flag
-    normalize(pkg.distance, 0, 50), // Distance normalized (0-50km range)
-  ];
-}
+function computeDriverMatchScore(
+  pkg: PackageAttributes,
+  driver: DriverAttributes
+): number {
+  // 1. Capacity fit (ideal is 50-85% utilization; penalize severe under-utilization or near-capacity)
+  const weightUtil = driver.maxCapacity > 0 ? pkg.weight / driver.maxCapacity : 1;
+  const volumeUtil = driver.maxVolume > 0 ? pkg.volume / driver.maxVolume : 1;
+  
+  // Score is highest (1.0) when utilization is around 60-80%, lowest if <10% (wasting large vehicle)
+  const weightFit = Math.max(0, 1 - Math.abs(weightUtil - 0.7));
+  const volumeFit = Math.max(0, 1 - Math.abs(volumeUtil - 0.7));
+  const capacityFitScore = (weightFit * 0.6 + volumeFit * 0.4);
 
-/**
- * Convert driver attributes to a normalized vector
- */
-function driverToVector(driver: DriverAttributes): number[] {
-  // Calculate capacity utilization (inverse - more capacity = better)
-  const capacityScore = normalize(driver.maxCapacity, 0, 200);
-  const volumeScore = normalize(driver.maxVolume, 0, 100);
+  // 2. Driver Rating (normalized 0 to 1)
+  const ratingScore = Math.max(0, Math.min(driver.rating / 5, 1));
 
-  // Experience and reliability scores
-  const experienceScore = normalize(driver.experienceYears, 0, 10);
-  const ratingScore = normalize(driver.rating, 0, 5);
+  // 3. Driver Experience (normalized 0 to 1, capped at 10 years)
+  const experienceScore = Math.max(0, Math.min(driver.experienceYears / 10, 1));
 
-  return [
-    capacityScore, // Higher capacity = better
-    volumeScore, // Higher volume capacity = better
-    experienceScore, // More experience = better for critical items
-    ratingScore, // Higher rating = better
-  ];
+  // 4. Distance and Vehicle Suitability
+  let vehicleDistanceSuitability = 0.8;
+  const vehicle = (driver.vehicleType || "").toLowerCase();
+  if (vehicle.includes("2-wheeler") || vehicle.includes("bike") || vehicle.includes("motorbike")) {
+    vehicleDistanceSuitability = pkg.distance <= 15 ? 1.0 : 0.6;
+  } else if (vehicle.includes("van") || vehicle.includes("car")) {
+    vehicleDistanceSuitability = pkg.distance <= 35 ? 0.95 : 0.8;
+  } else if (vehicle.includes("truck")) {
+    vehicleDistanceSuitability = pkg.distance > 10 ? 1.0 : 0.65;
+  }
+
+  // Multi-criteria weighting:
+  // If critical package: experience and rating are weighted heavily
+  let baseScore = 0;
+  if (pkg.isCritical) {
+    baseScore =
+      capacityFitScore * 0.25 +
+      ratingScore * 0.35 +
+      experienceScore * 0.25 +
+      vehicleDistanceSuitability * 0.15;
+  } else {
+    baseScore =
+      capacityFitScore * 0.40 +
+      ratingScore * 0.25 +
+      experienceScore * 0.15 +
+      vehicleDistanceSuitability * 0.20;
+  }
+
+  // Convert to 0-100 scale (typically 60-95 base)
+  let finalScore = 50 + baseScore * 45;
+
+  // Bonus for current availability
+  if (driver.isAvailable) {
+    finalScore += 5;
+  }
+
+  return Math.min(Math.round(finalScore * 100) / 100, 100);
 }
 
 /**
@@ -162,8 +191,6 @@ export function recommendDrivers(
   availableDrivers: DriverWithProfile[],
   topN: number = 3
 ): DriverRecommendation[] {
-  const packageVector = packageToVector(packageAttributes);
-
   const recommendations: DriverRecommendation[] = availableDrivers
     .filter((driver) => {
       // Filter out drivers who can't handle the package
@@ -172,30 +199,12 @@ export function recommendDrivers(
       return canHandleWeight && canHandleVolume;
     })
     .map((driver) => {
-      const driverVector = driverToVector(driver.driverProfile);
-      const similarity = cosineSimilarity(packageVector, driverVector);
-
-      // Convert similarity to percentage (0-100)
-      let matchScore = similarity * 100;
-
-      // Bonus points for availability
-      if (driver.driverProfile.isAvailable) {
-        matchScore += 5;
-      }
-
-      // Bonus for critical items with experienced drivers
-      if (packageAttributes.isCritical && driver.driverProfile.experienceYears >= 3) {
-        matchScore += 5;
-      }
-
-      // Cap at 100
-      matchScore = Math.min(matchScore, 100);
-
+      const matchScore = computeDriverMatchScore(packageAttributes, driver.driverProfile);
       const reasons = generateMatchReasons(packageAttributes, driver.driverProfile);
 
       return {
         driver,
-        matchScore: Math.round(matchScore * 100) / 100, // Round to 2 decimal places
+        matchScore,
         reasons,
       };
     })
