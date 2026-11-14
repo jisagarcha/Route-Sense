@@ -88,7 +88,7 @@ const demoStops = [
     lat: 27.7224,
     lng: 85.3321,
     label: "1",
-    address: "Customer stop 1 (Thamel)",
+    address: "Customer stop 1 (Panipokhari)",
     status: "PENDING",
   },
   {
@@ -96,7 +96,7 @@ const demoStops = [
     lat: 27.7281,
     lng: 85.3404,
     label: "2",
-    address: "Customer stop 2 (Lazimpat)",
+    address: "Customer stop 2 (Dhumbarahi)",
     status: "PENDING",
   },
   {
@@ -104,15 +104,56 @@ const demoStops = [
     lat: 27.7342,
     lng: 85.3461,
     label: "3",
-    address: "Customer stop 3 (Maharajgunj)",
+    address: "Customer stop 3 (Mahankal)",
     status: "PENDING",
   },
 ];
 
-const demoPolyline = demoStops.map((stop) => [stop.lat, stop.lng] as [number, number]);
+// Street-following driving path coordinates through Kathmandu road network
+const demoStreetPolyline: Array<[number, number]> = [
+  [27.7178, 85.3242], // W1 Baluwatar
+  [27.7188, 85.3256],
+  [27.7198, 85.3278],
+  [27.7210, 85.3302],
+  [27.7224, 85.3321], // Stop 1 (Panipokhari)
+  [27.7236, 85.3342],
+  [27.7252, 85.3370],
+  [27.7268, 85.3388],
+  [27.7276, 85.3399],
+  [27.7281, 85.3404], // Stop 2 (Dhumbarahi)
+  [27.7292, 85.3418],
+  [27.7308, 85.3432],
+  [27.7322, 85.3446],
+  [27.7335, 85.3455],
+  [27.7342, 85.3461], // Stop 3 (Mahankal)
+];
 
 export default function Home() {
   const [activeRole, setActiveRole] = useState<keyof typeof roleTabs>("Dispatcher");
+  const [demoRoadPolyline, setDemoRoadPolyline] = useState<Array<[number, number]>>(demoStreetPolyline);
+
+  useEffect(() => {
+    async function loadRoadGeometry() {
+      try {
+        const res = await fetch("/api/route", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            points: demoStops.map((s) => ({ lat: s.lat, lng: s.lng })),
+          }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const coords = data.route?.coordinates;
+        if (Array.isArray(coords) && coords.length > 1) {
+          setDemoRoadPolyline(coords);
+        }
+      } catch (err) {
+        console.warn("Using street polyline fallback for demo:", err);
+      }
+    }
+    void loadRoadGeometry();
+  }, []);
 
   return (
     <main className="bg-slate-50 text-slate-950">
@@ -127,8 +168,9 @@ export default function Home() {
             className="object-cover object-center"
             sizes="100vw"
           />
-          {/* Subtle warm ambient lighting & bottom gradient blend */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-white/40 pointer-events-none" />
+          {/* Luminous left-side gradient overlay for high contrast text readability */}
+          <div className="absolute inset-0 bg-gradient-to-r from-white/92 via-white/70 to-white/10 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-white/80 pointer-events-none" />
         </div>
 
         <div className="relative z-10 mx-auto max-w-7xl w-full px-4 pt-8 pb-12 lg:pt-12 lg:pb-16">
@@ -387,8 +429,8 @@ export default function Home() {
                 <RouteMap
                   locations={[]}
                   stops={demoStops}
-                  polyline={demoPolyline}
-                  center={[27.7172, 85.324]}
+                  polyline={demoRoadPolyline}
+                  center={[27.726, 85.335]}
                   zoom={13}
                   height="100%"
                 />

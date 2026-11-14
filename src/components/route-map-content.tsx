@@ -165,11 +165,71 @@ export default function RouteMapContent({
   const [isAddingLocation, setIsAddingLocation] = useState(false);
   const [selectedLocations, setSelectedLocations] = useState<number[]>([]);
   const [editMode, setEditMode] = useState<"location" | "road" | null>(null);
+  const [roadPolyline, setRoadPolyline] = useState<Array<[number, number]>>(polyline);
+
   const locationMap = useMemo(
     () => new Map(locations.map((location) => [location.id, location])),
     [locations]
   );
   const routePathSet = useMemo(() => new Set(routePath), [routePath]);
+
+  useEffect(() => {
+    // If polyline has high resolution (many points), it is already a detailed road polyline
+    if (polyline.length > Math.max(stops.length, 4)) {
+      setRoadPolyline(polyline);
+      return;
+    }
+
+    // Collect ordered points for road routing
+    const points: Array<{ lat: number; lng: number }> = [];
+    if (stops.length > 1) {
+      stops.forEach((s) => {
+        if (Number.isFinite(s.lat) && Number.isFinite(s.lng)) {
+          points.push({ lat: s.lat, lng: s.lng });
+        }
+      });
+    } else if (routePath.length > 1) {
+      routePath.forEach((id) => {
+        const coords = locationMap.get(id);
+        if (coords && Number.isFinite(coords.latitude) && Number.isFinite(coords.longitude)) {
+          points.push({ lat: coords.latitude, lng: coords.longitude });
+        }
+      });
+    } else if (polyline.length > 1) {
+      polyline.forEach(([lat, lng]) => {
+        points.push({ lat, lng });
+      });
+    }
+
+    if (points.length < 2) {
+      setRoadPolyline(polyline);
+      return;
+    }
+
+    let isMounted = true;
+    async function resolveShortestRoadRoute() {
+      try {
+        const res = await fetch("/api/route", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ points }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const coords = data.route?.coordinates;
+        if (isMounted && Array.isArray(coords) && coords.length > 1) {
+          setRoadPolyline(coords);
+        }
+      } catch (err) {
+        console.warn("Could not fetch road geometry:", err);
+      }
+    }
+
+    void resolveShortestRoadRoute();
+    return () => {
+      isMounted = false;
+    };
+  }, [polyline, routePath, stops, locationMap]);
   const boundsLocations = useMemo<Location[]>(() => {
     if (locations.length > 0) return locations;
     return [
@@ -268,20 +328,27 @@ export default function RouteMapContent({
     );
   });
 
-  // Draw route path with highlighted polyline
-  const routePolyline = routePath.length > 1 ? (
+  // Draw route path using actual shortest road network geometry
+  const activePolyline = roadPolyline.length > 1 ? roadPolyline : polyline.length > 1 ? polyline : null;
+  const renderedRoadPolyline = activePolyline ? (
+    <Polyline
+      positions={activePolyline}
+      color="#2563eb"
+      weight={6}
+      opacity={0.88}
+      lineCap="round"
+      lineJoin="round"
+    />
+  ) : routePath.length > 1 ? (
     <Polyline
       positions={routePath
         .map((id) => getLocationCoords(id))
         .filter((coord): coord is [number, number] => coord !== null)}
       color="#2563eb"
-      weight={4}
-      opacity={0.7}
+      weight={3}
+      dashArray="6, 8"
+      opacity={0.6}
     />
-  ) : null;
-
-  const enginePolyline = polyline.length > 1 ? (
-    <Polyline positions={polyline} color="#2563eb" weight={7} opacity={0.9} />
   ) : null;
 
   // Create numbered markers for route segments
@@ -471,8 +538,7 @@ export default function RouteMapContent({
         <MapBoundsHandler locations={boundsLocations} />
         
         {roadLines}
-        {routePolyline}
-        {enginePolyline}
+        {renderedRoadPolyline}
         {routeNumberMarkers}
         {locationMarkers}
         {stopMarkers}
