@@ -85,8 +85,9 @@ export default function SignInPage() {
           className="object-cover object-center"
           sizes="100vw"
         />
-        {/* Soft frosted ambient backdrop */}
-        <div className="absolute inset-0 bg-slate-950/20 backdrop-blur-[2px]" />
+        {/* Luminous gradient overlay matching landing page for rich contrast and clarity */}
+        <div className="absolute inset-0 bg-gradient-to-r from-white/92 via-white/70 to-white/10 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-white/80 pointer-events-none" />
       </div>
 
       <div className="relative z-10 mx-auto w-full max-w-6xl py-6">
