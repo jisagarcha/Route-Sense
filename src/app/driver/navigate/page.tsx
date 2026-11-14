@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { AlertTriangle, CheckCircle2, Loader2, PackageCheck, Phone, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, PackageCheck, Phone, RotateCcw, X, XCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { RouteMap } from "@/components/route-map";
@@ -249,7 +249,7 @@ export default function DriverNavigatePage() {
       }
     })();
 
-    const activePackage = orderedPackages.find((pkg) => !["DELIVERED", "FAILED"].includes(pkg.status)) || null;
+    const activePackage = orderedPackages.find((pkg) => !["DELIVERED", "RETURNED", "CANCELLED", "FAILED"].includes(pkg.status)) || null;
     const activePackageStops = activePackage
       ? numberedStops.filter((stop) => stop.packageId === activePackage.id)
       : [];
@@ -354,7 +354,11 @@ export default function DriverNavigatePage() {
     }
   };
 
-  const updatePackageStatus = async (packageId: string, status: "DELIVERED" | "FAILED", reason?: string) => {
+  const updatePackageStatus = async (
+    packageId: string,
+    status: "DELIVERED" | "RETURNED" | "CANCELLED" | "FAILED",
+    reason?: string
+  ) => {
     setBusy(`${packageId}-${status}`);
     setError("");
     try {
@@ -370,7 +374,7 @@ export default function DriverNavigatePage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to update stop");
       setPackages((current) => current.map((pkg) => pkg.id === packageId ? data.package : pkg));
-      setNotice(status === "DELIVERED" ? "Stop marked delivered." : "Stop marked failed.");
+      setNotice(`Stop marked ${status.toLowerCase()}.`);
     } catch (statusError) {
       setError(statusError instanceof Error ? statusError.message : "Failed to update stop");
     } finally {
@@ -531,30 +535,52 @@ export default function DriverNavigatePage() {
                               </div>
 
                               {stop.kind === "delivery" && !terminal && canUpdateDeliveryStops && (
-                                <div className="mt-3 grid grid-cols-2 gap-2">
+                                <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
                                   <Button
-                                    className="h-10 bg-emerald-600 text-sm hover:bg-emerald-700"
+                                    className="h-9 bg-emerald-600 text-xs hover:bg-emerald-700"
                                     disabled={busy !== null}
                                     onClick={() => updatePackageStatus(activePackage.id, "DELIVERED")}
                                   >
-                                    <CheckCircle2 className="h-4 w-4" />
+                                    <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
                                     Delivered
                                   </Button>
                                   <Button
                                     variant="outline"
-                                    className="h-10 border-red-200 text-red-700 hover:bg-red-50"
+                                    className="h-9 border-amber-300 bg-amber-50 text-amber-800 text-xs hover:bg-amber-100"
                                     disabled={busy !== null}
-                                    onClick={() => updatePackageStatus(activePackage.id, "FAILED", failureReason)}
+                                    onClick={() => updatePackageStatus(activePackage.id, "RETURNED", "Customer requested return")}
                                   >
-                                    <XCircle className="h-4 w-4" />
-                                    Refused
+                                    <RotateCcw className="mr-1 h-3.5 w-3.5" />
+                                    Returned
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    className="h-9 border-slate-300 text-slate-700 text-xs hover:bg-slate-100"
+                                    disabled={busy !== null}
+                                    onClick={() => updatePackageStatus(activePackage.id, "CANCELLED", "Order cancelled")}
+                                  >
+                                    <X className="mr-1 h-3.5 w-3.5" />
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    className="h-9 border-red-200 text-red-700 text-xs hover:bg-red-50"
+                                    disabled={busy !== null}
+                                    onClick={() => updatePackageStatus(activePackage.id, "FAILED", failureReason || "Delivery attempt failed")}
+                                  >
+                                    <XCircle className="mr-1 h-3.5 w-3.5" />
+                                    Failed
                                   </Button>
                                 </div>
                               )}
 
                               {stop.kind === "delivery" && terminal && (
                                 <p className="mt-2 text-xs text-slate-500">
-                                  {deliveryStatus === "FAILED"
+                                  {deliveryStatus === "RETURNED"
+                                    ? `Returned${stop.failureReason ? ` - ${stop.failureReason}` : ""}`
+                                    : deliveryStatus === "CANCELLED"
+                                    ? `Cancelled${stop.failureReason ? ` - ${stop.failureReason}` : ""}`
+                                    : deliveryStatus === "FAILED"
                                     ? `Failed${stop.failureReason ? ` - ${stop.failureReason}` : ""}`
                                     : stop.deliveredAt
                                       ? `Delivered ${new Date(stop.deliveredAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
@@ -608,7 +634,7 @@ function minDistanceToRouteKm(point: LivePosition, polyline: Array<[number, numb
 }
 
 function isTerminalStopStatus(status?: string | null) {
-  return ["DELIVERED", "FAILED"].includes(String(status || "").toUpperCase());
+  return ["DELIVERED", "RETURNED", "CANCELLED", "FAILED"].includes(String(status || "").toUpperCase());
 }
 
 function formatDeliveryStatus(value?: string | null) {
@@ -619,14 +645,15 @@ function getPackageDeliveryStatus(
   packageStatus: string,
   items: NonNullable<DriverPackage["items"]>
 ) {
-  if (packageStatus === "DELIVERED" || packageStatus === "FAILED") return packageStatus;
+  if (["DELIVERED", "RETURNED", "CANCELLED", "FAILED"].includes(packageStatus)) return packageStatus;
   if (items.length === 0) return packageStatus;
 
   const statuses = items.map((item) => String(item.deliveryStatus || "PENDING").toUpperCase());
   if (statuses.every((status) => status === "DELIVERED")) return "DELIVERED";
+  if (statuses.every((status) => status === "RETURNED")) return "RETURNED";
+  if (statuses.every((status) => status === "CANCELLED")) return "CANCELLED";
   if (statuses.every((status) => status === "FAILED")) return "FAILED";
-  if (statuses.some((status) => status === "FAILED")) return "IN_PROGRESS";
-  if (statuses.some((status) => status === "DELIVERED")) return "IN_PROGRESS";
+  if (statuses.some((status) => ["DELIVERED", "RETURNED", "CANCELLED", "FAILED"].includes(status))) return "IN_PROGRESS";
   if (statuses.some((status) => status === "COLLECTED_FROM_WAREHOUSE")) return "COLLECTED_FROM_WAREHOUSE";
   return packageStatus;
 }

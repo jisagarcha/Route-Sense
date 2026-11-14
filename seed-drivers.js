@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
 const prisma = new PrismaClient();
@@ -165,6 +166,17 @@ async function seedDrivers() {
           rating: driverData.rating,
           totalDeliveries: driverData.totalDeliveries,
           isAvailable: true
+        }
+      });
+
+      // Record sample current GPS coordinate in Kathmandu
+      const offsetLat = (Math.random() - 0.5) * 0.04;
+      const offsetLng = (Math.random() - 0.5) * 0.04;
+      await prisma.driverLocation.create({
+        data: {
+          driverId: user.id,
+          lat: 27.7120 + offsetLat,
+          lng: 85.3200 + offsetLng,
         }
       });
 

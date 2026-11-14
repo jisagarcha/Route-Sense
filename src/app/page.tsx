@@ -120,12 +120,12 @@ export default function Home() {
       <section className="relative overflow-hidden border-b border-slate-200 bg-white">
         <Image
           src="/ktm-bg.avif"
-          alt=""
+          alt="Kathmandu Map Background"
           fill
           priority
-          className="object-cover opacity-[0.08]"
+          className="object-cover opacity-35 object-center"
         />
-        <div className="absolute inset-0 bg-white/90" />
+        <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/85 to-white/70 pointer-events-none" />
 
         <div className="relative mx-auto max-w-7xl px-4 py-12 lg:py-16">
           <div className="flex items-center gap-4">

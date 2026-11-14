@@ -98,6 +98,7 @@ export default function MapViewPage() {
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>("nearest-neighbor");
   const [startingPoint, setStartingPoint] = useState<string>("");
   const [optimizedRoute, setOptimizedRoute] = useState<number[]>([]);
+  const [routePolyline, setRoutePolyline] = useState<Array<[number, number]>>([]);
   const [optimizedRouteDetails, setOptimizedRouteDetails] = useState<{
     path: Location[];
     totalDistance: number;
@@ -163,12 +164,29 @@ export default function MapViewPage() {
       return;
     }
 
+    // Guard: Prevent stacking multiple locations on exact identical coordinates
+    const isDuplicateCoords = locations.some(
+      (l) => Math.abs(l.latitude - newLocation.latitude) < 0.0001 && Math.abs(l.longitude - newLocation.longitude) < 0.0001
+    );
+
+    let locationToSave = { ...newLocation };
+    if (isDuplicateCoords) {
+      // Apply a realistic spread (~400m-800m) in Kathmandu so stops don't stack at 0.00 km
+      const jitterLat = (Math.random() - 0.5) * 0.012;
+      const jitterLng = (Math.random() - 0.5) * 0.012;
+      locationToSave = {
+        ...newLocation,
+        latitude: parseFloat((newLocation.latitude + jitterLat).toFixed(4)),
+        longitude: parseFloat((newLocation.longitude + jitterLng).toFixed(4)),
+      };
+    }
+
     try {
       setLoading(true);
       const response = await fetch("/api/locations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newLocation),
+        body: JSON.stringify(locationToSave),
       });
 
       if (!response.ok) {
@@ -292,24 +310,32 @@ export default function MapViewPage() {
       const routePath = data?.optimization?.path?.map((loc: Location) => loc.id) || [];
       setOptimizedRoute(routePath);
       
+      // Store road geometry polyline if available
+      const geometryCoords: Array<[number, number]> = data?.optimization?.geometry?.coordinates || [];
+      setRoutePolyline(geometryCoords);
+      
       // Store detailed route information
       const pathLocations = data?.optimization?.path || [];
-      const segments = [];
+      const segments = data?.optimization?.segments?.length > 0 
+        ? data.optimization.segments 
+        : [];
       
-      for (let i = 0; i < pathLocations.length - 1; i++) {
-        const from = pathLocations[i];
-        const to = pathLocations[i + 1];
-        const distance = calculateDistance(
-          from.latitude,
-          from.longitude,
-          to.latitude,
-          to.longitude
-        );
-        segments.push({
-          from: from.name,
-          to: to.name,
-          distance: parseFloat(distance.toFixed(2))
-        });
+      if (segments.length === 0) {
+        for (let i = 0; i < pathLocations.length - 1; i++) {
+          const from = pathLocations[i];
+          const to = pathLocations[i + 1];
+          const distance = calculateDistance(
+            from.latitude,
+            from.longitude,
+            to.latitude,
+            to.longitude
+          );
+          segments.push({
+            from: from.name,
+            to: to.name,
+            distance: parseFloat(distance.toFixed(2))
+          });
+        }
       }
       
       setOptimizedRouteDetails({
@@ -563,6 +589,7 @@ export default function MapViewPage() {
                     onClick={() => {
                       setOptimizedRoute([]);
                       setOptimizedRouteDetails(null);
+                      setRoutePolyline([]);
                       setSelectedAlgorithm("nearest-neighbor");
                     }}
                     className="w-full text-xs"
@@ -783,6 +810,7 @@ export default function MapViewPage() {
                 locations={combinedLocations}
                 roads={roads}
                 routePath={optimizedRoute}
+                polyline={routePolyline}
                 stops={activeDeliveryStops}
                 driverPositions={liveDriverPositions}
                 center={[27.7172, 85.324]}

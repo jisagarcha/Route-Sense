@@ -4,10 +4,11 @@ import { haversineDistance } from "@/lib/routing-engine";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import {
-  buildDistanceMatrix,
   solveTSP,
   TSPLocation,
+  DistanceMatrix,
 } from "@/lib/tsp-solver";
+import { getTravelMatrix, getRoadRouteGeometry } from "@/lib/delivery-routing";
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     // Validate all locations have coordinates
     const invalidLocations = locations.filter(
-      (loc) => !loc.latitude || !loc.longitude
+      (loc) => loc.latitude == null || loc.longitude == null
     );
 
     if (invalidLocations.length > 0) {
@@ -71,12 +72,29 @@ export async function POST(request: NextRequest) {
       longitude: loc.longitude!,
     }));
 
-    // Build distance matrix
-    const distanceMatrix = buildDistanceMatrix(
-      tspLocations,
-      (loc1, loc2) =>
-        haversineDistance(loc1.latitude, loc1.longitude, loc2.latitude, loc2.longitude)
-    );
+    // Build distance matrix using real OSRM road distance
+    const geoPoints = tspLocations.map((loc) => ({ lat: loc.latitude, lng: loc.longitude }));
+    const travelMatrix = await getTravelMatrix(geoPoints);
+
+    const distanceMatrix: DistanceMatrix = {};
+    tspLocations.forEach((loc1, i) => {
+      distanceMatrix[loc1.id] = {};
+      tspLocations.forEach((loc2, j) => {
+        if (loc1.id === loc2.id) {
+          distanceMatrix[loc1.id][loc2.id] = 0;
+        } else {
+          // distancesM is in meters; convert to km
+          let roadDistKm = 0;
+          if (travelMatrix.distancesM?.[i]?.[j] != null && travelMatrix.distancesM[i][j] > 0) {
+            roadDistKm = travelMatrix.distancesM[i][j] / 1000;
+          } else {
+            const straightLine = haversineDistance(loc1.latitude, loc1.longitude, loc2.latitude, loc2.longitude);
+            roadDistKm = straightLine > 0 ? straightLine * 1.35 : 0.05; // 50m minimum if duplicate coords
+          }
+          distanceMatrix[loc1.id][loc2.id] = roadDistKm;
+        }
+      });
+    });
 
     // Solve TSP
     const result = solveTSP(
@@ -116,32 +134,47 @@ export async function POST(request: NextRequest) {
       segments.push({
         from: locationMap.get(fromId)!.name,
         to: locationMap.get(toId)!.name,
-        distance: distanceMatrix[fromId][toId],
+        distance: parseFloat((distanceMatrix[fromId]?.[toId] || 0).toFixed(2)),
       });
     }
 
-    // Estimate time (assuming 30 km/h average speed)
-    const avgSpeed = 30; // km/h
-    const estimatedHours = result.totalDistance / avgSpeed;
-    const estimatedMinutes = Math.round(estimatedHours * 60);
+    // Get actual road polyline from OSRM for the ordered stops
+    const orderedPoints = pathWithDetails.map((loc) => ({
+      lat: loc.latitude!,
+      lng: loc.longitude!,
+    }));
+    const roadGeometry = await getRoadRouteGeometry(orderedPoints);
+
+    const effectiveTotalDistance =
+      roadGeometry.distanceKm > 0
+        ? roadGeometry.distanceKm
+        : result.totalDistance;
+
+    // Estimate time (using OSRM duration or 30 km/h average speed)
+    const estimatedMinutes =
+      roadGeometry.durationMin > 0
+        ? Math.round(roadGeometry.durationMin)
+        : Math.round((effectiveTotalDistance / 30) * 60);
+    const estimatedHours = parseFloat((estimatedMinutes / 60).toFixed(2));
 
     // Calculate fuel cost (assuming 10 km/l and $1.5/liter)
     const fuelEfficiency = 10; // km/l
     const fuelPrice = 1.5; // $/liter
-    const fuelCost = (result.totalDistance / fuelEfficiency) * fuelPrice;
+    const fuelCost = (effectiveTotalDistance / fuelEfficiency) * fuelPrice;
 
     return NextResponse.json(
       {
         success: true,
         optimization: {
           path: pathWithDetails,
+          geometry: roadGeometry,
           segments,
-          totalDistance: parseFloat(result.totalDistance.toFixed(2)),
+          totalDistance: parseFloat(effectiveTotalDistance.toFixed(2)),
           totalStops: result.path.length - (returnToStart ? 1 : 0),
           returnToStart,
           estimatedTime: {
             minutes: estimatedMinutes,
-            hours: parseFloat(estimatedHours.toFixed(2)),
+            hours: estimatedHours,
           },
           estimatedCost: {
             fuel: parseFloat(fuelCost.toFixed(2)),
@@ -156,7 +189,9 @@ export async function POST(request: NextRequest) {
         metadata: {
           requestedLocations: locationIds.length,
           optimizedRoute: result.path.length,
-          improvementMetric: "Total Distance Minimized",
+          improvementMetric: "Road Distance & Travel Time Minimized",
+          matrixSource: travelMatrix.source,
+          geometrySource: roadGeometry.source,
         },
       },
       { status: 200 }

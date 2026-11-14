@@ -188,6 +188,13 @@ export async function getRoadRouteGeometry(
   return getRouteGeometry(points, osrmBaseUrl);
 }
 
+export async function getTravelMatrix(
+  points: GeoPoint[],
+  osrmBaseUrl = process.env.OSRM_BASE_URL || DEFAULT_OSRM_URL
+): Promise<MatrixResult> {
+  return buildTravelMatrix(points, osrmBaseUrl);
+}
+
 async function buildTravelMatrix(
   points: GeoPoint[],
   osrmBaseUrl: string

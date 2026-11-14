@@ -394,9 +394,10 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
                           </Badge>
                         )}
                         <span className="font-semibold text-sm">{item.product.name}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {formatDeliveryStatus(item.deliveryStatus)}
-                        </Badge>
+                        <PackageStatusBadge
+                          status={item.deliveryStatus || "PENDING"}
+                          className="text-xs"
+                        />
                       </div>
                       <p className="text-xs text-gray-600">
                         Quantity: {item.quantity} • {item.product.weight * item.quantity} kg
@@ -564,8 +565,4 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
       </div>
     </div>
   );
-}
-
-function formatDeliveryStatus(value?: string | null) {
-  return (value || "PENDING").replaceAll("_", " ");
 }

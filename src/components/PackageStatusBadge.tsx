@@ -11,8 +11,9 @@ const statusClasses: Record<string, string> = {
   COLLECTED_FROM_WAREHOUSE: "bg-yellow-100 text-yellow-900 border-yellow-200",
   IN_TRANSIT: "bg-orange-100 text-orange-900 border-orange-200",
   DELIVERED: "bg-green-100 text-green-800 border-green-200",
+  RETURNED: "bg-amber-100 text-amber-900 border-amber-300",
+  CANCELLED: "bg-slate-200 text-slate-800 border-slate-300",
   FAILED: "bg-red-100 text-red-800 border-red-200",
-  CANCELLED: "bg-red-100 text-red-800 border-red-200",
 };
 
 export function PackageStatusBadge({ status, className }: PackageStatusBadgeProps) {

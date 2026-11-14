@@ -22,7 +22,12 @@ interface Package {
   createdAt: string;
   dispatcher: { name: string | null };
   driver: { name: string | null } | null;
-  items: Array<{ id: string }>;
+  items?: Array<{
+    id: string;
+    sequence?: number | null;
+    deliveryStatus?: string | null;
+    product?: { name: string } | null;
+  }>;
 }
 
 const PAGE_SIZE = 20;
@@ -269,6 +274,31 @@ export default function PackagesPage() {
                           </span>
                         </div>
                       </div>
+
+                      {pkg.items && pkg.items.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-2 border-t border-slate-100">
+                          <span className="text-xs text-gray-500 font-medium">{pkg.items.length} stops:</span>
+                          {pkg.items.map((it) => (
+                            <Badge
+                              key={it.id}
+                              variant="outline"
+                              className={`text-[10px] px-1.5 py-0.5 ${
+                                it.deliveryStatus === 'DELIVERED'
+                                  ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
+                                  : it.deliveryStatus === 'RETURNED'
+                                  ? 'border-amber-300 bg-amber-50 text-amber-800'
+                                  : it.deliveryStatus === 'CANCELLED'
+                                  ? 'border-slate-300 bg-slate-100 text-slate-700'
+                                  : it.deliveryStatus === 'FAILED'
+                                  ? 'border-red-300 bg-red-50 text-red-800'
+                                  : 'border-blue-200 bg-blue-50 text-blue-700'
+                              }`}
+                            >
+                              #{it.sequence || '•'} {it.product?.name || 'Item'}: {it.deliveryStatus || 'PENDING'}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="text-right">
                       <div className="text-sm text-gray-600 mb-1">

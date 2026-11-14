@@ -3,7 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const allowedStatuses = new Set(["COLLECTED_FROM_WAREHOUSE", "DELIVERED", "FAILED"]);
+const allowedStatuses = new Set([
+  "COLLECTED_FROM_WAREHOUSE",
+  "DELIVERED",
+  "RETURNED",
+  "CANCELLED",
+  "FAILED",
+]);
 
 export async function PATCH(
   req: NextRequest,
@@ -55,19 +61,24 @@ export async function PATCH(
     }
 
     const timestamp = parseTimestamp(body.timestamp);
+    const reasonText =
+      typeof body.reason === "string" && body.reason.trim()
+        ? body.reason.trim()
+        : typeof body.failureReason === "string" && body.failureReason.trim()
+        ? body.failureReason.trim()
+        : status === "FAILED" || status === "RETURNED" || status === "CANCELLED"
+        ? "Driver logged: " + status
+        : null;
 
     await prisma.packageItem.update({
       where: { id: itemId },
       data: {
         deliveryStatus: status,
         collectedAt: status === "COLLECTED_FROM_WAREHOUSE" ? timestamp : item.collectedAt,
-        deliveredAt: status === "DELIVERED" || status === "FAILED" ? timestamp : item.deliveredAt,
-        failureReason:
-          status === "FAILED"
-            ? typeof body.failureReason === "string" && body.failureReason.trim()
-              ? body.failureReason.trim()
-              : "Unspecified"
-            : null,
+        deliveredAt: ["DELIVERED", "RETURNED", "CANCELLED", "FAILED"].includes(status)
+          ? timestamp
+          : item.deliveredAt,
+        failureReason: reasonText,
       },
     });
 
@@ -76,15 +87,28 @@ export async function PATCH(
       orderBy: { sequence: "asc" },
     });
 
-    const hasPendingItems = refreshedItems.some((entry) => !["DELIVERED", "FAILED"].includes(entry.deliveryStatus));
-    const hasFailedItems = refreshedItems.some((entry) => entry.deliveryStatus === "FAILED");
+    const terminalStatuses = ["DELIVERED", "RETURNED", "CANCELLED", "FAILED"];
+    const hasPendingItems = refreshedItems.some(
+      (entry) => !terminalStatuses.includes(entry.deliveryStatus)
+    );
+    const hasFailedOrReturned = refreshedItems.some(
+      (entry) => entry.deliveryStatus === "FAILED" || entry.deliveryStatus === "RETURNED"
+    );
+    const hasDelivered = refreshedItems.some((entry) => entry.deliveryStatus === "DELIVERED");
 
     if (!hasPendingItems) {
-      const completedStatus = hasFailedItems ? "FAILED" : "DELIVERED";
+      // Determine overall package terminal status
+      let overallStatus: "DELIVERED" | "FAILED" | "CANCELLED" = "DELIVERED";
+      if (!hasDelivered) {
+        overallStatus = refreshedItems.every((e) => e.deliveryStatus === "CANCELLED")
+          ? "CANCELLED"
+          : "FAILED";
+      }
+
       const completedData: Record<string, unknown> = {
-        status: completedStatus,
+        status: overallStatus,
         deliveredAt: timestamp,
-        failureReason: hasFailedItems ? "One or more delivery stops failed." : null,
+        failureReason: hasFailedOrReturned ? "Some stops failed, cancelled, or returned." : null,
       };
 
       const startedAt = pkg.delivery?.startedAt;
@@ -100,20 +124,23 @@ export async function PATCH(
         prisma.delivery.upsert({
           where: { packageId },
           update: {
-            status: hasFailedItems ? "FAILED" : "COMPLETED",
+            status: overallStatus === "DELIVERED" ? "COMPLETED" : "FAILED",
             completedAt: timestamp,
             actualTime,
           },
           create: {
             packageId,
-            status: hasFailedItems ? "FAILED" : "COMPLETED",
+            status: overallStatus === "DELIVERED" ? "COMPLETED" : "FAILED",
             completedAt: timestamp,
             actualTime,
           },
         }),
         prisma.driverProfile.updateMany({
-          where: { userId: session.user.id },
-          data: { isAvailable: true, totalDeliveries: { increment: 1 } },
+          where: { userId: pkg.driverId || session.user.id },
+          data: {
+            isAvailable: true,
+            ...(hasDelivered ? { totalDeliveries: { increment: 1 } } : {}),
+          },
         }),
       ]);
     }
