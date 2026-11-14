@@ -10,7 +10,6 @@ import {
   Clock3,
   MapPin,
   Package,
-  Play,
   Route,
   ShieldCheck,
   Truck,
@@ -80,32 +79,32 @@ const demoStops = [
     id: "demo-warehouse",
     lat: 27.7178,
     lng: 85.3242,
-    label: "1",
-    address: "Warehouse pickup",
+    label: "W1",
+    address: "Warehouse W1 (Baluwatar)",
     status: "IN_TRANSIT",
   },
   {
     id: "demo-stop-1",
     lat: 27.7224,
     lng: 85.3321,
-    label: "2",
-    address: "Customer stop 1",
+    label: "1",
+    address: "Customer stop 1 (Thamel)",
     status: "PENDING",
   },
   {
     id: "demo-stop-2",
     lat: 27.7281,
     lng: 85.3404,
-    label: "3",
-    address: "Customer stop 2",
+    label: "2",
+    address: "Customer stop 2 (Lazimpat)",
     status: "PENDING",
   },
   {
     id: "demo-stop-3",
     lat: 27.7342,
     lng: 85.3461,
-    label: "4",
-    address: "Customer stop 3",
+    label: "3",
+    address: "Customer stop 3 (Maharajgunj)",
     status: "PENDING",
   },
 ];
@@ -117,126 +116,151 @@ export default function Home() {
 
   return (
     <main className="bg-slate-50 text-slate-950">
-      <section className="relative overflow-hidden border-b border-slate-200 bg-white">
-        <Image
-          src="/ktm-bg.avif"
-          alt="Kathmandu Map Background"
-          fill
-          priority
-          className="object-cover opacity-35 object-center"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/85 to-white/70 pointer-events-none" />
+      <section className="relative overflow-hidden border-b border-slate-200 min-h-[92vh] flex flex-col justify-between">
+        {/* Background Artwork */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/ktm-hero.jpg"
+            alt="Kathmandu Durbar Square Background"
+            fill
+            priority
+            className="object-cover object-center"
+            sizes="100vw"
+          />
+          {/* Subtle warm ambient lighting & bottom gradient blend */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-white/40 pointer-events-none" />
+        </div>
 
-        <div className="relative mx-auto max-w-7xl px-4 py-12 lg:py-16">
-          <div className="flex items-center gap-4">
-            <Image
-              src="/routesenselogo.png"
-              alt="RouteSense"
-              width={180}
-              height={56}
-              className="h-12 w-auto"
-              priority
-            />
-            <span className="hidden h-8 w-px bg-slate-200 sm:block" />
-            <p className="text-sm font-semibold uppercase tracking-wide text-rose-700">
-              Delivery operations platform
-            </p>
+        <div className="relative z-10 mx-auto max-w-7xl w-full px-4 pt-8 pb-12 lg:pt-12 lg:pb-16">
+          {/* Brand Eyebrow Badge */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="inline-flex items-center gap-2.5 rounded-full bg-white/85 backdrop-blur-md border border-white/70 px-3.5 py-1.5 shadow-xs">
+              <Image
+                src="/routesenselogo.png"
+                alt="RouteSense"
+                width={110}
+                height={32}
+                className="h-5 w-auto"
+                priority
+              />
+              <span className="h-3.5 w-px bg-slate-300" />
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#65000B]">
+                Delivery operations platform
+              </p>
+            </div>
           </div>
 
-          <div className="mt-10 grid gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)] lg:items-center">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(400px,0.85fr)] lg:items-center">
+            {/* Left Column */}
             <div>
-              <div className="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700">
+              <div className="inline-flex items-center rounded-full border border-[#65000B]/25 bg-[#65000B]/10 backdrop-blur-md px-4 py-1.5 text-xs sm:text-sm font-semibold text-[#65000B] shadow-xs">
                 Live routing, assignment, and driver tracking
               </div>
 
-              <h1 className="mt-6 max-w-3xl text-5xl font-bold tracking-tight text-slate-950 sm:text-6xl">
+              <h1 className="mt-5 max-w-3xl text-5xl font-extrabold tracking-tight text-slate-950 sm:text-6xl drop-shadow-xs">
                 RouteSense
               </h1>
 
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
+              <p className="mt-4 max-w-xl text-base sm:text-lg font-medium leading-relaxed text-slate-800 drop-shadow-xs">
                 Plan routes, assign drivers, and track every stop from warehouse to doorstep in a single operational workspace.
               </p>
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button asChild size="lg" className="h-12 bg-rose-600 px-6 hover:bg-rose-700">
-                  <Link href="/auth/signin">
-                    <Play className="mr-2 h-4 w-4" />
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Button asChild size="lg" className="h-12 bg-[#65000B] px-8 font-semibold text-white shadow-md hover:bg-[#4d0008] hover:shadow-lg transition">
+                  <Link href="/auth/signin" className="text-white font-semibold flex items-center justify-center">
                     Sign in
                   </Link>
                 </Button>
-                <Button asChild variant="outline" size="lg" className="h-12 border-slate-200 bg-white px-6 text-slate-900 hover:bg-slate-50">
+                <Button asChild variant="outline" size="lg" className="h-12 border-white/80 bg-white/85 backdrop-blur-md px-6 font-semibold text-slate-800 shadow-sm hover:bg-white transition">
                   <Link href="/auth/signup">Create account</Link>
                 </Button>
               </div>
 
-              <div className="mt-10 grid gap-4 sm:grid-cols-3">
+              {/* 3 Frosted Feature Cards */}
+              <div className="mt-10 grid gap-3 sm:grid-cols-3">
                 {[
-                  "Route planning built for dispatch",
-                  "Live GPS visibility for drivers",
-                  "Clean package handoff between teams",
-                ].map((item) => (
-                  <div key={item} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <CheckCircle2 className="h-5 w-5 text-rose-600" />
-                    <p className="mt-3 text-sm font-medium leading-6 text-slate-700">{item}</p>
+                  { text: "Route planning built for dispatch", icon: CheckCircle2 },
+                  { text: "Live GPS visibility for drivers", icon: CheckCircle2 },
+                  { text: "Clean package handoff between teams", icon: Clock3 },
+                ].map(({ text, icon: Icon }) => (
+                  <div key={text} className="rounded-2xl border border-white/80 bg-white/80 backdrop-blur-md p-4 shadow-sm transition hover:bg-white/95">
+                    <Icon className="h-5 w-5 text-[#65000B]" />
+                    <p className="mt-2.5 text-xs sm:text-sm font-semibold leading-snug text-slate-800">{text}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_20px_70px_rgba(15,23,42,.08)]">
-              <div className="flex items-center justify-between">
+            {/* Right Column: Frosted Operational Snapshot Card */}
+            <div className="rounded-3xl border border-white/80 bg-white/85 backdrop-blur-xl p-6 shadow-2xl shadow-slate-900/10">
+              <div className="flex items-center justify-between pb-3.5 border-b border-slate-100/80">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Operational snapshot
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    OPERATIONAL SNAPSHOT
                   </p>
-                  <p className="mt-1 text-xl font-semibold text-slate-950">Today&apos;s route control</p>
+                  <p className="mt-0.5 text-xl font-bold text-slate-950">Today&apos;s route control</p>
                 </div>
-                <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
+                <span className="rounded-full bg-[#65000B]/10 px-2.5 py-1 text-xs font-bold text-[#65000B] tracking-wide">
                   LIVE
                 </span>
               </div>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <MiniStat label="Drivers on shift" value="18" />
-                <MiniStat label="Packages queued" value="146" />
-                <MiniStat label="Stops in transit" value="32" />
-                <MiniStat label="Average delay" value="07 min" />
+              {/* 2x2 Stats Grid */}
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-white/70 bg-white/75 backdrop-blur-sm p-3.5 shadow-2xs">
+                  <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500">DRIVERS ON SHIFT</p>
+                  <p className="mt-1 text-2xl font-extrabold text-slate-950">18</p>
+                </div>
+                <div className="rounded-2xl border border-white/70 bg-white/75 backdrop-blur-sm p-3.5 shadow-2xs">
+                  <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500">PACKAGES QUEUED</p>
+                  <p className="mt-1 text-2xl font-extrabold text-slate-950">146</p>
+                </div>
+                <div className="rounded-2xl border border-white/70 bg-white/75 backdrop-blur-sm p-3.5 shadow-2xs">
+                  <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500">STOPS IN TRANSIT</p>
+                  <p className="mt-1 text-2xl font-extrabold text-slate-950">32</p>
+                </div>
+                <div className="rounded-2xl border border-white/70 bg-white/75 backdrop-blur-sm p-3.5 shadow-2xs">
+                  <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500">AVERAGE DELAY</p>
+                  <p className="mt-1 text-2xl font-extrabold text-slate-950">07 min</p>
+                </div>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              {/* Route Sequence Subcard */}
+              <div className="mt-4 rounded-2xl border border-white/70 bg-white/60 backdrop-blur-sm p-4 shadow-2xs">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-slate-950">Route sequence</p>
+                    <p className="text-sm font-bold text-slate-950">Route sequence</p>
                     <p className="text-xs text-slate-500">Warehouse to final stop</p>
                   </div>
-                  <Route className="h-5 w-5 text-rose-600" />
+                  <Route className="h-4 w-4 text-[#65000B]" />
                 </div>
 
-                <div className="mt-4 space-y-3">
+                <div className="mt-3 space-y-2">
                   {[
-                    "Warehouse collection confirmed",
-                    "Stop 1 assigned to Driver A",
-                    "Live GPS active on the route",
-                  ].map((item, index) => (
-                    <div key={item} className="flex items-center gap-3 rounded-xl bg-white px-3 py-3">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-rose-50 text-xs font-semibold text-rose-700">
-                        {index + 1}
+                    { badge: "W1", text: "Warehouse collection confirmed" },
+                    { badge: "1", text: "Stop 1 assigned to Driver A" },
+                    { badge: "2", text: "Stop 2 - Live GPS active on the route" },
+                  ].map((item) => (
+                    <div key={item.text} className="flex items-center gap-3 rounded-xl border border-white/60 bg-white/90 px-3 py-2.5 shadow-2xs">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#65000B] text-xs font-bold text-white shadow-2xs">
+                        {item.badge}
                       </span>
-                      <span className="text-sm text-slate-700">{item}</span>
+                      <span className="text-xs sm:text-sm font-medium text-slate-800">{item.text}</span>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      <section className="border-b border-slate-200 bg-slate-50 px-4 py-8">
-        <div className="mx-auto grid max-w-7xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => (
-            <CounterStat key={stat.label} {...stat} />
-          ))}
+          {/* Floating Frosted Stats Strip */}
+          <div className="mt-12 rounded-3xl border border-white/80 bg-white/85 backdrop-blur-md p-4 sm:p-6 shadow-xl">
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              {stats.map((stat) => (
+                <CounterStat key={stat.label} {...stat} />
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -284,8 +308,8 @@ export default function Home() {
                 onClick={() => setActiveRole(role)}
                 className={`h-11 rounded-md border px-5 text-sm font-semibold transition ${
                   activeRole === role
-                    ? "border-rose-600 bg-rose-600 text-white"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-rose-200 hover:bg-rose-50"
+                    ? "border-[#65000B] bg-[#65000B] text-white"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-[#65000B]/30 hover:bg-[#65000B]/5"
                 }`}
               >
                 {role}
@@ -295,13 +319,13 @@ export default function Home() {
 
           <div className="mt-6 grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-sm font-semibold uppercase tracking-wide text-rose-700">
+              <p className="text-sm font-semibold uppercase tracking-wide text-[#65000B]">
                 {roleTabs[activeRole].title}
               </p>
               <div className="mt-4 space-y-3">
                 {roleTabs[activeRole].points.map((point) => (
                   <div key={point} className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
-                    <ShieldCheck className="h-4 w-4 text-rose-600" />
+                    <ShieldCheck className="h-4 w-4 text-[#65000B]" />
                     <span className="text-sm text-slate-700">{point}</span>
                   </div>
                 ))}
@@ -331,7 +355,7 @@ export default function Home() {
               const Icon = feature.icon;
               return (
                 <div key={feature.title} className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
-                  <Icon className="h-6 w-6 text-rose-600" />
+                  <Icon className="h-6 w-6 text-[#65000B]" />
                   <h3 className="mt-4 text-lg font-semibold text-slate-950">{feature.title}</h3>
                   <p className="mt-3 text-sm leading-6 text-slate-600">{feature.text}</p>
                 </div>
@@ -355,7 +379,7 @@ export default function Home() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Route preview</p>
                   <p className="mt-1 text-lg font-semibold text-slate-950">Warehouse to stop chain</p>
                 </div>
-                <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
+                <span className="rounded-full bg-[#65000B]/10 px-3 py-1 text-xs font-semibold text-[#65000B]">
                   4 stops
                 </span>
               </div>
@@ -373,7 +397,7 @@ export default function Home() {
 
             <div className="space-y-4">
               <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-rose-700">Dispatcher view</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#65000B]">Dispatcher view</p>
                 <h3 className="mt-2 text-xl font-semibold text-slate-950">One route, one control point</h3>
                 <p className="mt-3 text-sm leading-6 text-slate-600">
                   The preview stays compact on the page while still showing the warehouse, ordered stops, and route line.
@@ -386,10 +410,10 @@ export default function Home() {
                   <PreviewRow label="Driver state" value="Ready to start" />
                 </div>
               </div>
-              <div className="rounded-3xl border border-slate-200 bg-rose-50 p-5">
-                <p className="text-sm font-semibold uppercase tracking-wide text-rose-700">Color system</p>
+              <div className="rounded-3xl border border-slate-200 bg-[#65000B]/5 p-5">
+                <p className="text-sm font-semibold uppercase tracking-wide text-[#65000B]">Color system</p>
                 <p className="mt-2 text-sm leading-6 text-slate-700">
-                  White surfaces, slate text, and rose accents keep the page aligned with the logo without turning the interface heavy.
+                  White surfaces, slate text, and rich oxblood accents keep the page aligned with the brand without turning the interface heavy.
                 </p>
               </div>
             </div>
@@ -399,9 +423,9 @@ export default function Home() {
 
       <section className="bg-white px-4 py-16">
         <div className="mx-auto max-w-7xl">
-          <div className="flex flex-col items-start justify-between gap-6 rounded-3xl border border-rose-200 bg-rose-50 p-8 md:flex-row md:items-center">
+          <div className="flex flex-col items-start justify-between gap-6 rounded-3xl border border-[#65000B]/20 bg-[#65000B]/5 p-8 md:flex-row md:items-center">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-rose-700">Get started</p>
+              <p className="text-sm font-semibold uppercase tracking-wide text-[#65000B]">Get started</p>
               <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
                 Ready to run deliveries with less guesswork?
               </h2>
@@ -410,7 +434,7 @@ export default function Home() {
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button asChild className="h-11 bg-rose-600 px-6 hover:bg-rose-700">
+              <Button asChild className="h-11 bg-[#65000B] px-6 hover:bg-[#4d0008]">
                 <Link href="/auth/signin">Sign in</Link>
               </Button>
               <Button asChild variant="outline" className="h-11 border-slate-200 bg-white px-6 text-slate-900 hover:bg-slate-50">
@@ -421,15 +445,6 @@ export default function Home() {
         </div>
       </section>
     </main>
-  );
-}
-
-function MiniStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-bold text-slate-950">{value}</p>
-    </div>
   );
 }
 
@@ -444,7 +459,7 @@ function SectionHeading({
 }) {
   return (
     <div className="max-w-3xl">
-      <p className="text-sm font-semibold uppercase tracking-wide text-rose-700">{eyebrow}</p>
+      <p className="text-sm font-semibold uppercase tracking-wide text-[#65000B]">{eyebrow}</p>
       <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">{title}</h2>
       {text && <p className="mt-4 text-base leading-7 text-slate-600">{text}</p>}
     </div>
@@ -485,12 +500,12 @@ function CounterStat({ value, suffix, label }: { value: number; suffix: string; 
   const formatted = value % 1 === 0 ? Math.round(count).toLocaleString() : count.toFixed(1);
 
   return (
-    <div ref={ref} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="text-3xl font-bold text-slate-950">
+    <div ref={ref} className="rounded-2xl border border-white/60 bg-white/70 backdrop-blur-sm p-4 sm:p-5 shadow-2xs transition hover:bg-white/90">
+      <div className="text-2xl sm:text-3xl font-extrabold text-slate-950">
         {formatted}
         {suffix}
       </div>
-      <p className="mt-2 text-sm text-slate-600">{label}</p>
+      <p className="mt-1 text-xs sm:text-sm font-medium text-slate-600">{label}</p>
     </div>
   );
 }
@@ -509,10 +524,10 @@ function StepCard({
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
       <div className="flex items-center justify-between">
-        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-rose-600 text-sm font-bold text-white">
+        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#65000B] text-sm font-bold text-white">
           {number}
         </div>
-        <Icon className="h-5 w-5 text-rose-600" />
+        <Icon className="h-5 w-5 text-[#65000B]" />
       </div>
       <h3 className="mt-5 text-xl font-semibold text-slate-950">{title}</h3>
       <p className="mt-3 text-sm leading-6 text-slate-600">{text}</p>
@@ -523,11 +538,11 @@ function StepCard({
 function RoleCard({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-      <p className="text-sm font-semibold uppercase tracking-wide text-rose-700">{title}</p>
+      <p className="text-sm font-semibold uppercase tracking-wide text-[#65000B]">{title}</p>
       <p className="mt-3 text-sm leading-6 text-slate-600">{subtitle}</p>
       <div className="mt-5 rounded-xl bg-white p-3">
         <div className="flex items-center gap-2 text-sm text-slate-700">
-          <Clock3 className="h-4 w-4 text-rose-600" />
+          <Clock3 className="h-4 w-4 text-[#65000B]" />
           Ready for work
         </div>
       </div>

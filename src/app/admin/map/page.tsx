@@ -409,10 +409,10 @@ export default function MapViewPage() {
     ...locations,
     ...warehouses.map((warehouse, index) => ({
       id: -1000 - index,
-      name: warehouse.name,
+      name: warehouse.name.includes("W") ? warehouse.name : `W${index + 1}: ${warehouse.name}`,
       latitude: warehouse.lat,
       longitude: warehouse.lng,
-      description: `Warehouse - ${warehouse.address}`,
+      description: `Warehouse W${index + 1} - ${warehouse.address}`,
     })),
   ];
 

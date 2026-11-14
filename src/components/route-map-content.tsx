@@ -32,24 +32,28 @@ const createNumberedIcon = (number: number) => {
 };
 
 const createRouteStopIcon = (label: string, active = false, completed = false) => {
-  const size = active ? 34 : 28;
-  const color = completed ? "#16a34a" : active ? "#f97316" : "#dc2626";
+  const isWarehouse = /^w\d*$/i.test(label) || label.toLowerCase().includes("warehouse") || label.toLowerCase() === "start";
+  const displayLabel = label.toLowerCase() === "start" ? "W1" : label;
+  const size = isWarehouse ? 32 : active ? 34 : 28;
+  const color = isWarehouse ? "#65000B" : completed ? "#16a34a" : active ? "#f97316" : "#2563eb";
+  const borderRadius = isWarehouse ? "8px" : "9999px";
   return L.divIcon({
     className: "routesense-route-stop-icon",
     html: `<div style="
       width:${size}px;
       height:${size}px;
-      border-radius:9999px;
+      border-radius:${borderRadius};
       background:${color};
       color:white;
-      border:3px solid white;
-      box-shadow:0 8px 20px rgba(15,23,42,.28);
+      border:2.5px solid white;
+      box-shadow:0 8px 20px rgba(15,23,42,.32);
       display:flex;
       align-items:center;
       justify-content:center;
       font-weight:800;
-      font-size:12px;
-    ">${label}</div>`,
+      font-size:${isWarehouse ? "11px" : "12px"};
+      letter-spacing:${isWarehouse ? "-0.5px" : "normal"};
+    ">${displayLabel}</div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   });
@@ -360,20 +364,37 @@ export default function RouteMapContent({
     );
   });
 
-  const stopMarkers = stops.map((stop, index) => {
+  let warehouseCount = 0;
+  let deliveryCount = 0;
+  const stopMarkers = stops.map((stop) => {
     const active = highlightedStopId === stop.id;
     const completed = stop.status === "DELIVERED" || stop.status === "COMPLETED";
+    const isExplicitWarehouse =
+      (stop.label && /^w\d*$/i.test(stop.label)) ||
+      (stop.address && stop.address.toLowerCase().includes("warehouse")) ||
+      (stop.id && String(stop.id).toLowerCase().includes("warehouse"));
+
+    let resolvedLabel = stop.label;
+    if (!resolvedLabel) {
+      if (isExplicitWarehouse) {
+        warehouseCount++;
+        resolvedLabel = `W${warehouseCount}`;
+      } else {
+        deliveryCount++;
+        resolvedLabel = String(deliveryCount);
+      }
+    }
 
     return (
       <Marker
         key={stop.id}
         position={[stop.lat, stop.lng]}
-        icon={createRouteStopIcon(stop.label || String(index + 1), active, completed)}
+        icon={createRouteStopIcon(resolvedLabel, active, completed)}
         eventHandlers={{ click: () => onStopClick?.(stop.id) }}
       >
         <Popup>
           <div className="max-w-[220px] text-sm">
-            <p className="font-semibold">{stop.label || `Stop ${index + 1}`}</p>
+            <p className="font-semibold">{isExplicitWarehouse ? `Warehouse (${resolvedLabel})` : `Stop ${resolvedLabel}`}</p>
             {stop.address && <p className="text-gray-600">{stop.address}</p>}
             {stop.status && <p className="mt-1 text-xs text-gray-500">{stop.status.replaceAll("_", " ")}</p>}
           </div>

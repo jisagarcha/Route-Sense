@@ -6,7 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { DriverTuningSimulator } from '@/components/DriverTuningSimulator';
+import { Sparkles, Layers, ArrowRight } from 'lucide-react';
 
 interface FrequentItemset {
   locations: string[];
@@ -153,6 +156,52 @@ export default function PatternsPage() {
             </CardContent>
           </Card>
 
+          {result.frequentItemsets.some((it) => it.size >= 2) && (
+            <Card className="border-indigo-100 bg-gradient-to-br from-indigo-50/50 to-white">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-indigo-600" />
+                  <CardTitle className="text-indigo-900">Recommended Morning Dispatch Bundles</CardTitle>
+                </div>
+                <CardDescription>
+                  Clusters mined by Apriori that frequently co-occur in the same delivery batch. Dispatchers can pre-assign these stops to a single driver.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {result.frequentItemsets
+                    .filter((it) => it.size >= 2)
+                    .slice(0, 4)
+                    .map((bundle, bIdx) => (
+                      <div key={bIdx} className="p-4 bg-white rounded-lg border border-indigo-100 shadow-sm space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600 flex items-center gap-1">
+                            <Layers className="h-3.5 w-3.5" /> Bundle #{bIdx + 1} ({bundle.size} stops)
+                          </span>
+                          <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 border-indigo-200">
+                            {bundle.supportPercentage} Co-occurrence
+                          </Badge>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          {bundle.locations.map((loc, lIdx) => (
+                            <span key={lIdx} className="inline-flex items-center text-xs font-medium bg-slate-100 text-slate-800 px-2 py-0.5 rounded">
+                              {loc}
+                              {lIdx < bundle.locations.length - 1 && (
+                                <ArrowRight className="h-3 w-3 ml-1 text-slate-400" />
+                              )}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground pt-1">
+                          Appeared together in {bundle.count} of {result.totalTransactions} historical orders.
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle>Frequent Location Patterns</CardTitle>
@@ -226,6 +275,10 @@ export default function PatternsPage() {
           </Card>
         </div>
       )}
+
+      <div className="mt-12">
+        <DriverTuningSimulator />
+      </div>
     </div>
   );
 }

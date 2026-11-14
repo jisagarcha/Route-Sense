@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RouteMap } from '@/components/route-map';
+import { PackageStatusBadge } from '@/components/PackageStatusBadge';
+import { CheckCircle2, RotateCcw, Clock, TrendingUp, AlertCircle } from 'lucide-react';
 
 interface RouteRequest {
   id: number;
@@ -59,6 +62,7 @@ export default function HistoryPage() {
   const [selectedDriverId, setSelectedDriverId] = useState('');
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [actualRoutePolyline, setActualRoutePolyline] = useState<Array<[number, number]>>([]);
+  const [statusFilter, setStatusFilter] = useState('ALL');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -101,8 +105,6 @@ export default function HistoryPage() {
   };
 
   const completedRoutes = driverRoutes.filter((route) => route.status === 'DELIVERED').length;
-  const failedRoutes = driverRoutes.filter((route) => route.status === 'FAILED').length;
-  const totalDistance = driverRoutes.reduce((sum, route) => sum + (route.totalDistanceKm || 0), 0);
   const avgDuration = (() => {
     const durations = driverRoutes
       .map((route) => route.actualDurationMin ?? route.estimatedDurationMin)
@@ -110,6 +112,73 @@ export default function HistoryPage() {
     if (durations.length === 0) return null;
     return durations.reduce((sum, value) => sum + value, 0) / durations.length;
   })();
+
+  const filteredDriverRoutes = useMemo(() => {
+    return driverRoutes.filter((route) => {
+      if (statusFilter === 'ALL') return true;
+      return route.status === statusFilter;
+    });
+  }, [driverRoutes, statusFilter]);
+
+  const analytics = useMemo(() => {
+    let totalStops = 0;
+    let deliveredStops = 0;
+    let returnedStops = 0;
+    let failedStops = 0;
+    const reasonsMap: Record<string, number> = {};
+
+    driverRoutes.forEach((route) => {
+      if (route.stops) {
+        route.stops.forEach((stop) => {
+          totalStops++;
+          const st = (stop.status || '').toUpperCase();
+          if (st === 'DELIVERED') deliveredStops++;
+          else if (st === 'RETURNED') returnedStops++;
+          else if (st === 'FAILED' || st === 'CANCELLED') failedStops++;
+        });
+      }
+      if (route.failureReason) {
+        reasonsMap[route.failureReason] = (reasonsMap[route.failureReason] || 0) + 1;
+      }
+    });
+
+    const routesWithVariance = driverRoutes
+      .filter((r) => r.estimatedDurationMin != null && r.actualDurationMin != null)
+      .map((r) => r.actualDurationMin! - r.estimatedDurationMin!);
+
+    const onTimeRoutes = routesWithVariance.filter((v) => v <= 5).length;
+    const onTimeRate = routesWithVariance.length > 0 
+      ? Math.round((onTimeRoutes / routesWithVariance.length) * 100) 
+      : 100;
+
+    const avgVariance = routesWithVariance.length > 0
+      ? parseFloat((routesWithVariance.reduce((sum, v) => sum + v, 0) / routesWithVariance.length).toFixed(1))
+      : 0;
+
+    const deliverySuccessRate = totalStops > 0
+      ? Math.round((deliveredStops / totalStops) * 100)
+      : driverRoutes.length > 0 ? Math.round((completedRoutes / driverRoutes.length) * 100) : 0;
+
+    const returnRate = totalStops > 0
+      ? Math.round((returnedStops / totalStops) * 100)
+      : 0;
+
+    const topReasons = Object.entries(reasonsMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+
+    return {
+      totalStops,
+      deliveredStops,
+      returnedStops,
+      failedStops,
+      deliverySuccessRate,
+      returnRate,
+      onTimeRate,
+      avgVariance,
+      topReasons,
+    };
+  }, [driverRoutes, completedRoutes]);
   const selectedRoute = driverRoutes.find((route) => route.id === selectedRouteId) || null;
   const selectedRouteStops = useMemo(() => selectedRoute ? buildMapStops(selectedRoute) : [], [selectedRoute]);
   const selectedRoutePoints = useMemo(() => selectedRoute ? buildRoutePoints(selectedRoute) : [], [selectedRoute]);
@@ -164,58 +233,115 @@ export default function HistoryPage() {
         </p>
       </div>
 
-      <div className="mb-8 grid gap-4 md:grid-cols-4">
-        <Card>
+      {/* Analytics KPI Scoreboard */}
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-blue-100 bg-blue-50/30">
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Driver Routes</p>
-            <p className="text-2xl font-bold">{driverRoutes.length}</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wider text-blue-700">Routes & Stops</p>
+              <TrendingUp className="h-4 w-4 text-blue-600" />
+            </div>
+            <p className="mt-2 text-2xl font-bold text-slate-900">{driverRoutes.length} <span className="text-sm font-normal text-slate-500">routes</span></p>
+            <p className="text-xs text-slate-500">{analytics.totalStops} delivery stops total</p>
           </CardContent>
         </Card>
-        <Card>
+
+        <Card className="border-emerald-100 bg-emerald-50/30">
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Completed</p>
-            <p className="text-2xl font-bold">{completedRoutes}</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">Success Rate</p>
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            </div>
+            <p className="mt-2 text-2xl font-bold text-emerald-800">{analytics.deliverySuccessRate}%</p>
+            <p className="text-xs text-slate-500">{completedRoutes} completed deliveries</p>
           </CardContent>
         </Card>
-        <Card>
+
+        <Card className="border-amber-100 bg-amber-50/30">
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Failed</p>
-            <p className="text-2xl font-bold">{failedRoutes}</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wider text-amber-700">Schedule Adherence</p>
+              <Clock className="h-4 w-4 text-amber-600" />
+            </div>
+            <p className="mt-2 text-2xl font-bold text-amber-800">{analytics.onTimeRate}% <span className="text-xs font-normal text-slate-500">on-time</span></p>
+            <p className="text-xs text-slate-500">
+              Avg variance: {analytics.avgVariance > 0 ? `+${analytics.avgVariance}` : analytics.avgVariance} min
+            </p>
           </CardContent>
         </Card>
-        <Card>
+
+        <Card className="border-rose-100 bg-rose-50/30">
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Distance</p>
-            <p className="text-2xl font-bold">{totalDistance.toFixed(1)} km</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wider text-rose-700">Returns & Refusals</p>
+              <RotateCcw className="h-4 w-4 text-rose-600" />
+            </div>
+            <p className="mt-2 text-2xl font-bold text-rose-800">{analytics.returnRate}% <span className="text-xs font-normal text-slate-500">returns</span></p>
+            <p className="text-xs text-slate-500">{analytics.returnedStops} returned, {analytics.failedStops} failed stops</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Top Failure & Return Reasons Banner */}
+      {analytics.topReasons.length > 0 && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+          <div className="flex items-center gap-2 font-semibold text-sm text-amber-900 mb-2">
+            <AlertCircle className="h-4 w-4 text-amber-700" />
+            Top Delivery Exceptions & Root Causes
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {analytics.topReasons.map(([reason, count]) => (
+              <Badge key={reason} variant="outline" className="border-amber-300 bg-white text-xs text-amber-800">
+                {reason}: <strong className="ml-1">{count}</strong>
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
 
       <Card className="mb-8">
         <CardHeader>
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <CardTitle>Driver Delivery History</CardTitle>
+              <CardTitle>Driver Delivery History & Variance</CardTitle>
               <CardDescription>
-                {driverRoutes.length} route{driverRoutes.length !== 1 ? 's' : ''} from assigned package deliveries
-                {avgDuration !== null ? `, average duration ${avgDuration.toFixed(0)} min` : ''}
+                {filteredDriverRoutes.length} route{filteredDriverRoutes.length !== 1 ? 's' : ''} shown
+                {avgDuration !== null ? `, fleet avg duration ${avgDuration.toFixed(0)} min` : ''}
               </CardDescription>
             </div>
-            <label className="grid gap-2 text-sm">
-              <span className="font-medium">Driver</span>
-              <select
-                value={selectedDriverId}
-                onChange={(event) => setSelectedDriverId(event.target.value)}
-                className="h-10 rounded-md border border-input bg-background px-3"
-              >
-                <option value="">All drivers</option>
-                {drivers.map((driver) => (
-                  <option key={driver.id} value={driver.id}>
-                    {formatDriverName(driver)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="grid gap-1 text-xs">
+                <span className="font-medium text-slate-600">Filter Status</span>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="h-9 rounded-md border border-input bg-background px-3 text-xs"
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="DELIVERED">Delivered</option>
+                  <option value="IN_TRANSIT">In Transit</option>
+                  <option value="ASSIGNED">Assigned</option>
+                  <option value="FAILED">Failed</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+              </label>
+
+              <label className="grid gap-1 text-xs">
+                <span className="font-medium text-slate-600">Filter Driver</span>
+                <select
+                  value={selectedDriverId}
+                  onChange={(event) => setSelectedDriverId(event.target.value)}
+                  className="h-9 rounded-md border border-input bg-background px-3 text-xs"
+                >
+                  <option value="">All drivers</option>
+                  {drivers.map((driver) => (
+                    <option key={driver.id} value={driver.id}>
+                      {formatDriverName(driver)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -253,57 +379,78 @@ export default function HistoryPage() {
                   <TableHead>Stops</TableHead>
                   <TableHead>Distance</TableHead>
                   <TableHead>Duration</TableHead>
+                  <TableHead>Variance</TableHead>
                   <TableHead>Completed</TableHead>
                   <TableHead>Map</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {driverRoutes.length === 0 ? (
+                {filteredDriverRoutes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground">
-                      No driver route history found. Assign packages to a driver and complete deliveries to build history.
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-6">
+                      No driver routes match the selected filters.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  driverRoutes.map((route) => (
-                    <TableRow key={route.id}>
-                      <TableCell>
-                        <div className="font-medium">{route.packageName}</div>
-                        <div className="max-w-xs truncate text-xs text-muted-foreground">
-                          {route.warehouseAddress || 'Warehouse'} to {route.deliveryAddress || route.stops[0]?.address || 'Delivery address pending'}
-                        </div>
-                      </TableCell>
-                      <TableCell>{formatDriverName(route.driver)}</TableCell>
-                      <TableCell>
-                        <span className="rounded-full bg-muted px-2 py-1 text-xs font-semibold">
-                          {route.status.replaceAll('_', ' ')}
-                        </span>
-                      </TableCell>
-                      <TableCell>{route.stopCount}</TableCell>
-                      <TableCell>{route.totalDistanceKm !== null ? `${route.totalDistanceKm.toFixed(2)} km` : 'Pending'}</TableCell>
-                      <TableCell>
-                        {route.actualDurationMin ?? route.estimatedDurationMin
-                          ? `${route.actualDurationMin ?? route.estimatedDurationMin} min`
-                          : 'Pending'}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {formatOptionalDate(route.completedAt)}
-                        {route.failureReason ? (
-                          <div className="max-w-xs truncate text-xs text-red-600">{route.failureReason}</div>
-                        ) : null}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          type="button"
-                          variant={selectedRouteId === route.id ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setSelectedRouteId(route.id)}
-                        >
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  filteredDriverRoutes.map((route) => {
+                    const est = route.estimatedDurationMin;
+                    const act = route.actualDurationMin;
+                    const variance = est != null && act != null ? act - est : null;
+
+                    return (
+                      <TableRow key={route.id}>
+                        <TableCell>
+                          <div className="font-medium text-sm">{route.packageName}</div>
+                          <div className="max-w-xs truncate text-xs text-muted-foreground">
+                            {route.warehouseAddress || 'Warehouse'} to {route.deliveryAddress || route.stops[0]?.address || 'Delivery address pending'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs">{formatDriverName(route.driver)}</TableCell>
+                        <TableCell>
+                          <PackageStatusBadge status={route.status} className="text-[11px]" />
+                        </TableCell>
+                        <TableCell className="text-xs">{route.stopCount}</TableCell>
+                        <TableCell className="text-xs">{route.totalDistanceKm !== null ? `${route.totalDistanceKm.toFixed(2)} km` : 'Pending'}</TableCell>
+                        <TableCell className="text-xs">
+                          {act != null ? `${act} min` : est != null ? `Est ${est} min` : 'Pending'}
+                        </TableCell>
+                        <TableCell>
+                          {variance === null ? (
+                            <span className="text-xs text-slate-400">—</span>
+                          ) : variance <= 2 ? (
+                            <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px]">
+                              On-Time ({variance > 0 ? `+${variance}` : variance}m)
+                            </Badge>
+                          ) : variance <= 10 ? (
+                            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-800 text-[10px]">
+                              +{variance}m delay
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="border-red-200 bg-red-50 text-red-800 text-[10px]">
+                              +{variance}m delay
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {formatOptionalDate(route.completedAt)}
+                          {route.failureReason ? (
+                            <div className="max-w-xs truncate text-xs text-red-600 font-medium">{route.failureReason}</div>
+                          ) : null}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            type="button"
+                            variant={selectedRouteId === route.id ? 'default' : 'outline'}
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => setSelectedRouteId(route.id)}
+                          >
+                            View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

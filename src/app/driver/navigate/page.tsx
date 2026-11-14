@@ -229,10 +229,22 @@ export default function DriverNavigatePage() {
       }
     }
 
-    const numberedStops = routeStops.map((stop, index) => ({
-      ...stop,
-      label: String(index + 1),
-    }));
+    let warehouseIdx = 0;
+    let deliveryIdx = 0;
+    const numberedStops = routeStops.map((stop) => {
+      if (stop.kind === "warehouse") {
+        warehouseIdx++;
+        return {
+          ...stop,
+          label: `W${warehouseIdx}`,
+        };
+      }
+      deliveryIdx++;
+      return {
+        ...stop,
+        label: String(deliveryIdx),
+      };
+    });
 
     const routeWithPolyline = orderedPackages.find((pkg) => pkg.route?.polylineJson);
     const computedPolyline =

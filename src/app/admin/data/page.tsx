@@ -87,25 +87,25 @@ export default function DataManagementPage() {
     }
   };
 
-  const handleExport = async () => {
+  const handleExportDataset = async (type: string, defaultName: string) => {
     setIsExporting(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/export?type=${importType}`);
+      const response = await fetch(`/api/export?type=${type}`);
 
       if (!response.ok) {
-        const data = await response.json();
-        setError(data.error || "Failed to export data");
+        const data = await response.json().catch(() => ({}));
+        setError(data.error || `Failed to export ${type} data`);
         return;
       }
 
       const csvContent = await response.text();
-      const filename = `${importType}_${new Date().toISOString().split("T")[0]}.csv`;
+      const filename = `${defaultName}_${new Date().toISOString().split("T")[0]}.csv`;
       downloadCSV(csvContent, filename);
     } catch (err) {
       console.error("Export error:", err);
-      setError("Failed to export data");
+      setError(`Failed to export ${type} data`);
     } finally {
       setIsExporting(false);
     }
@@ -241,31 +241,114 @@ export default function DataManagementPage() {
         </CardContent>
       </Card>
 
-      {/* Export Section */}
+      {/* Business Intelligence & Data Export Section */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Download className="h-5 w-5" />
-            Export Data
+            <Download className="h-5 w-5 text-blue-600" />
+            Operations & Business Intelligence Reports
           </CardTitle>
-          <CardDescription>Download current {importType} as CSV</CardDescription>
+          <CardDescription>
+            Download granular operational reports in CSV format for analysis in Excel, PowerBI, or Tableau.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button
-            onClick={handleExport}
-            disabled={isExporting}
-            variant="outline"
-            className="w-full"
-          >
-            {isExporting ? (
-              <>Exporting...</>
-            ) : (
-              <>
-                <Download className="h-4 w-4 mr-2" />
-                Export {importType}
-              </>
-            )}
-          </Button>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* 1. Deliveries Report */}
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex flex-col justify-between">
+              <div>
+                <div className="font-semibold text-sm text-slate-900 mb-1">🚚 Delivery Routes & Variance</div>
+                <p className="text-xs text-slate-600 mb-4">
+                  Full route logs with planned vs. actual duration, delays, distances, and driver completion stats.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleExportDataset("deliveries", "delivery_routes")}
+                disabled={isExporting}
+                className="w-full text-xs"
+              >
+                <Download className="h-3.5 w-3.5 mr-1" /> Export Deliveries CSV
+              </Button>
+            </div>
+
+            {/* 2. Items & Returns Report */}
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex flex-col justify-between">
+              <div>
+                <div className="font-semibold text-sm text-slate-900 mb-1">📦 Stop Outcomes & Return Diagnostics</div>
+                <p className="text-xs text-slate-600 mb-4">
+                  Granular item-level statuses, recipient details, and failure or return reasons recorded by drivers.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleExportDataset("items", "delivery_items_diagnostics")}
+                disabled={isExporting}
+                className="w-full text-xs"
+              >
+                <Download className="h-3.5 w-3.5 mr-1" /> Export Items CSV
+              </Button>
+            </div>
+
+            {/* 3. Drivers Report */}
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex flex-col justify-between">
+              <div>
+                <div className="font-semibold text-sm text-slate-900 mb-1">👤 Driver Fleet Utilization</div>
+                <p className="text-xs text-slate-600 mb-4">
+                  Driver vehicle profiles, capacity limits (kg/cu ft), ratings, experience, and delivery totals.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleExportDataset("drivers", "driver_fleet")}
+                disabled={isExporting}
+                className="w-full text-xs"
+              >
+                <Download className="h-3.5 w-3.5 mr-1" /> Export Drivers CSV
+              </Button>
+            </div>
+
+            {/* 4. Locations Report */}
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex flex-col justify-between">
+              <div>
+                <div className="font-semibold text-sm text-slate-900 mb-1">📍 Delivery Locations Network</div>
+                <p className="text-xs text-slate-600 mb-4">
+                  Full catalog of geocoded delivery locations, hub names, and latitude/longitude coordinates.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleExportDataset("locations", "locations")}
+                disabled={isExporting}
+                className="w-full text-xs"
+              >
+                <Download className="h-3.5 w-3.5 mr-1" /> Export Locations CSV
+              </Button>
+            </div>
+
+            {/* 5. Roads Graph Report */}
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex flex-col justify-between">
+              <div>
+                <div className="font-semibold text-sm text-slate-900 mb-1">🛣️ Road Adjacency & Distance Graph</div>
+                <p className="text-xs text-slate-600 mb-4">
+                  Connected road network segments, bidirectional connectivity, and road segment distances.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleExportDataset("roads", "roads")}
+                disabled={isExporting}
+                className="w-full text-xs"
+              >
+                <Download className="h-3.5 w-3.5 mr-1" /> Export Roads CSV
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

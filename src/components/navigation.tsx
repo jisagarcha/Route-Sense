@@ -41,6 +41,7 @@ const getNavItems = (role?: string) => {
     ANALYST: [
       { href: '/admin/patterns', label: 'Patterns', icon: BarChart3 },
       { href: '/admin/history', label: 'History', icon: History },
+      { href: '/admin/data', label: 'Data', icon: Database },
     ]
   };
 
@@ -82,39 +83,41 @@ export function Navigation() {
             </div>
           </Link>
 
-          {/* Navigation Links */}
-          <div className="flex min-w-0 flex-1 items-center justify-end gap-1 overflow-x-auto">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
-              
-              return (
-                <Button
-                  key={item.href}
-                  asChild
-                  variant={active ? 'default' : 'ghost'}
-                  className={`
-                    relative gap-2 transition-all duration-200
-                    ${active
-                      ? 'bg-primary text-primary-foreground shadow-md'
-                      : 'hover:bg-primary/10 hover:text-primary hover:shadow-sm'
-                    }
-                    ${active ? 'scale-105' : 'hover:scale-105'}
-                  `}
-                >
-                  <Link href={item.href}>
-                    <Icon className="h-4 w-4" />
-                    <span className="hidden font-medium sm:inline">{item.label}</span>
-                    {active && (
-                      <span className="absolute -bottom-1 left-1/2 h-0.5 w-3/4 -translate-x-1/2 rounded-full bg-primary-foreground" />
-                    )}
-                  </Link>
-                </Button>
-              );
-            })}
+          {/* Right Action Group: Nav Links + User Section */}
+          <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            {/* Navigation Links */}
+            <div className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.href);
+                
+                return (
+                  <Button
+                    key={item.href}
+                    asChild
+                    variant={active ? 'default' : 'ghost'}
+                    className={`
+                      relative gap-2 transition-all duration-200
+                      ${active
+                        ? 'bg-[#65000B] text-white shadow-sm hover:bg-[#4d0008]'
+                        : 'hover:bg-[#65000B]/10 hover:text-[#65000B]'
+                      }
+                    `}
+                  >
+                    <Link href={item.href} className={active ? 'text-white' : ''}>
+                      <Icon className="h-4 w-4" />
+                      <span className="hidden font-medium sm:inline">{item.label}</span>
+                      {active && (
+                        <span className="absolute -bottom-1 left-1/2 h-0.5 w-3/4 -translate-x-1/2 rounded-full bg-white" />
+                      )}
+                    </Link>
+                  </Button>
+                );
+              })}
+            </div>
 
-            {/* User Section */}
-              <div className="ml-2 flex shrink-0 items-center gap-2 border-l pl-2 md:ml-4 md:pl-4">
+            {/* User Section (Fixed right, beside nav links) */}
+            <div className="flex shrink-0 items-center gap-2 border-l border-slate-200 pl-2 sm:pl-3">
               {status === 'loading' ? (
                 <div className="h-8 w-8 animate-pulse rounded-full bg-gray-200" />
               ) : session ? (
@@ -134,7 +137,7 @@ export function Navigation() {
                   </Button>
                 </>
               ) : (
-                <Button asChild variant="default" size="sm" className="gap-2">
+                <Button asChild variant="outline" size="sm" className="gap-2 border-slate-200 bg-white/90 text-slate-800 shadow-2xs hover:border-[#65000B]/30 hover:bg-[#65000B]/10 hover:text-[#65000B] transition">
                   <Link href="/auth/signin">
                     <User className="h-4 w-4" />
                     Sign In

@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,18 +58,33 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="max-w-md w-full space-y-8 p-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Join RouteSense to optimize your delivery routes
-          </p>
-        </div>
+    <div className="relative min-h-[calc(100vh-64px)] overflow-hidden flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      {/* Background Kathmandu Artwork */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/ktm-hero.jpg"
+          alt="Kathmandu Background"
+          fill
+          priority
+          className="object-cover object-center"
+          sizes="100vw"
+        />
+        {/* Frosted ambient backdrop */}
+        <div className="absolute inset-0 bg-slate-950/25 backdrop-blur-[2px]" />
+      </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+      <div className="relative z-10 w-full max-w-md">
+        <Card className="rounded-3xl border border-white/80 bg-white/90 backdrop-blur-2xl p-8 shadow-2xl">
+          <div className="text-center">
+            <h2 className="text-3xl font-extrabold text-slate-950">
+              Create your account
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Join RouteSense to optimize your delivery routes
+            </p>
+          </div>
+
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
               {error}
@@ -153,7 +169,7 @@ export default function SignUpPage() {
           <div>
             <Button
               type="submit"
-              className="w-full"
+              className="w-full bg-[#65000B] hover:bg-[#4d0008] text-white font-semibold transition"
               disabled={loading}
             >
               {loading ? "Creating account..." : "Sign up"}
@@ -162,12 +178,13 @@ export default function SignUpPage() {
 
           <div className="text-center text-sm">
             <span className="text-gray-600">Already have an account? </span>
-            <a href="/auth/signin" className="font-medium text-primary hover:underline">
+            <a href="/auth/signin" className="font-semibold text-[#65000B] hover:underline">
               Sign in
             </a>
           </div>
         </form>
       </Card>
+      </div>
     </div>
   );
 }

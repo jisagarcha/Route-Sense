@@ -29,7 +29,7 @@ export default withAuth(
     }
 
     if (
-      (path.startsWith("/admin/patterns") || path.startsWith("/admin/history")) &&
+      (path.startsWith("/admin/patterns") || path.startsWith("/admin/history") || path.startsWith("/admin/data")) &&
       role !== "ADMIN" &&
       role !== "ANALYST"
     ) {
@@ -40,6 +40,7 @@ export default withAuth(
       path.startsWith("/admin") &&
       !path.startsWith("/admin/patterns") &&
       !path.startsWith("/admin/history") &&
+      !path.startsWith("/admin/data") &&
       role !== "ADMIN"
     ) {
       return NextResponse.redirect(new URL("/", req.url));
